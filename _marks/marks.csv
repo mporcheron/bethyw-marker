@@ -1,0 +1,4 @@
+student_id,total_marks,catch2,setup,git,readme,compile,unittest_compile,unittest,quality
+123456,100,0,0,10,0,5,0,60,27
+123456,100,0,0,10,0,5,0,60,27
+123456,0,0,0
