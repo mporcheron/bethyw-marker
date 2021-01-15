@@ -1,0 +1,25 @@
+student,filename,tags,result,marks,scenario
+1234567,./tests/test1.cpp,[args][datasets],pass,1.0,The datasets program argument can be parsed correctly
+1234567,./tests/test2.cpp,[areas][args],pass,1.0,The areas program argument can be parsed correctly
+1234567,./tests/test3.cpp,[args][measures],pass,1.0,The measures program argument can be parsed correctly
+1234567,./tests/test4.cpp,[args][years],pass,1.0,The year program argument can be parsed correctly
+1234567,./tests/test5.cpp,[InputFile][existent],pass,2.0,A source file can be opened and read
+1234567,./tests/test5.cpp,[InputFile][nonexistent],pass,2.0,A nonexistant source file cannot be opened for reading
+1234567,./tests/test6.cpp,[Measure][construct],pass,1.0,A Measure object can be constructed with a codename and label
+1234567,./tests/test7.cpp,[Measure][populate],pass,3.0,A Measure object can be populated with values
+1234567,./tests/test8.cpp,[Area][construct],pass,1.0,An Area instance be constructed with a local authority code
+1234567,./tests/test8.cpp,[Area][names],pass,3.0,An Area instance can have names in multiple languages
+1234567,./tests/test9.cpp,[Areas<>][construct],pass,1.0,An Areas<> instance can be constructed
+1234567,./tests/test9.cpp,[Areas<>][contain],pass,3.0,An Areas<> instance can contain Area instances
+1234567,./tests/test10.cpp,[Areas<>][authorityCodeCSV],pass,5.0,Areas.csv can be correctly parsed
+1234567,./tests/test11.cpp,[Area][Measures],pass,3.0,An Area instance can contain Measure instances
+1234567,./tests/test12.cpp,[Areas<>][popu1009],pass,5.0,Popu1009.json can be correctly parsed
+1234567,./tests/testus1.cpp,[args][extended][years],pass,1.0,The year program argument can be parsed correctly [extended]
+1234567,./tests/testus2.cpp,[Measure][extended][populate],pass,1.0,A Measure object can be populated with values [extended]
+1234567,./tests/testus3.cpp,[Areas<>][contain][extended],pass,1.0,An Areas<> instance can contain Area instances [extended]
+1234567,./tests/testus4.cpp,[Area][Measures][extended],pass,1.0,An Area instance can contain Measure instances [extended]
+1234567,./tests/testus5.cpp,[Areas<>][extended][popu1009],pass,5.0,Popu1009.json can be correctly parsed [extended for non-lowercase]
+1234567,./tests/testus6.cpp,[Areas<>][popu1009][statistics],pass,5.0,Statistics can be correctly calculated from imported data
+1234567,./tests/testus7.cpp,[Areas<>][econ0080],pass,2.0,Econ0080.json can be correctly parsed
+1234567,./tests/testus8.cpp,[Areas<>][envi0201],pass,1.0,Envi0201.json can be correctly parsed
+1234567,./tests/testus9.cpp,[Areas<>][tran0152],pass,5.0,Tran0152.json can be correctly parsed

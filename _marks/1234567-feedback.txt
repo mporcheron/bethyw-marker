@@ -1,0 +1,56 @@
+Feedback for 1234567 (81/100)
+
+USE OF GIT
+Overall, your use of Git is OK, but could have been better. For higher marks, you should have made sure to perform granular commits (i.e. only committing a change or two at a time) with accurate messages. In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key. You were asked to try and stick to good practice in your coursework. 
+
+COMPILATION
+Your code compiles without issuing any warnings from the compiler, which is great. You should never be submitting code with errors or warnings, even if the code is incomplete.
+
+FUNCTIONAL TESTING
+We ran your code through 24 different tests. Some of these tests examined individual functions, where as some assessed your overall program performance. Your code passed all the tests, which is an excellent outcome, especially you were not provided complete test coverage.
+MEMORY LEAKS
+It seems that your code contains a one or more memory leaks. You should make sure you free any memory you allocate on the heap. In reality, you should have used good RAII principles taught in lectures and not needed to handle memory management at all.
+
+CODE STYLE
+Thank you for keeping the functions in the same order as in the provided code. This makes it easier to mark your work. You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. In terms of naming convention, you have used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.
+
+CODE EFFICIENCY
+With respect to exceptions, you have used these very well in your coursework. However, you did not always catch your references as constant references as your told to do in lectures. In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. You did use pass-by-reference in some of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though.
+
+Your function declarations are close to perfect, but you should always think about the use of const, noexcept, and reference/value types. You've included some instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).
+
+SUMMARY
+Overall, this is an good coursework. You have produced some nice code, but there is some room for improvement. That said, you still did very well!Feedback for 1234567 (95/100)
+
+USE OF GIT
+You have used Git very well, committing work as you go and using relevant Git messages. In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key.
+
+COMPILATION
+Your code compiles without issuing any warnings from the compiler, which is great. You should never be submitting code with errors or warnings, even if the code is incomplete.
+
+FUNCTIONAL TESTING
+We ran your code through 24 different tests. Some of these tests examined individual functions, where as some assessed your overall program performance. Your code passed all the tests, which is an excellent outcome, especially as you were not provided complete test coverage.
+
+MEMORY LEAKS
+Great work, your code has no memory leaks.
+
+CODE STYLE
+Thank you for keeping the functions in the same order as in the provided code. This makes it easier to mark your work. You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. In terms of naming convention, you have consistently used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.
+
+CODE EFFICIENCY
+With respect to exceptions, you have used these very well in your coursework, including catching them as constant references. In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. You did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. Keep it up :)
+
+Your function declarations are perfect. Continue to always program with the use of const, noexcept, and reference/value types is needed. You've included some instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).
+
+SUMMARY
+Overall, this is an good coursework. You have produced some nice code, but there is some room for improvement. That said, you still did very well!Feedback for 1234567 (70/100)
+
+USE OF GIT
+You have used Git very well, committing work as you go and using relevant Git messages. In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key.
+
+COMPILATION
+Your code compiles without issuing any warnings from the compiler, which is great. You should never be submitting code with errors or warnings, even if the code is incomplete.
+
+FUNCTIONAL TESTING
+We ran your code through 24 different tests. Some of these tests examined individual functions, where as some assessed your overall program performance. Your code passed all the tests, which is an excellent outcome, especially as you were not provided complete test coverage.
+

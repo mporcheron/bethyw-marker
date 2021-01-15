@@ -1,0 +1,6 @@
+Feedback for bethyw-student (0/100)
+
+USE OF GIT
+You did not include your .git/ directory, thus you will receive 0 marks for this coursework. You were told multiple times in lectures and in the coursework specification that you must include the .git/ directoryCOMPILATION
+Your code compiles without issuing any warnings from the compiler, which is great. You should never be submitting code with errors or warnings, even if the code is incomplete.
+

@@ -1,4 +1,9 @@
-student_id,total_marks,catch2,setup,git,readme,compile,unittest_compile,unittest,quality
-123456,100,0,0,10,0,5,0,60,27
-123456,100,0,0,10,0,5,0,60,27
-123456,0,0,0
+student_id,total_marks,catch2,setup,git,readme,compile,unittest_compile,unittest,quality1234567,3,3
+1234567,3,3
+1234567,0,0,0,0
+1234567,0,0
+1234567y,0,0
+1234567,81,0,0,0,6,5,0,55,0,1,14
+1234567,95,0,0,0,8,5,0,55,5,1,21
+1234567,70,0,0,0,10,5,0,55
+bethyw-student,0,0,0,0,0,5,0
