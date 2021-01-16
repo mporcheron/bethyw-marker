@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 
 import argparse
 
 from curses import wrapper
-from marker import marker
+from automarker import marker
 
     
 parser = argparse.ArgumentParser(description='Mark CSC371 20/21 Coursework')

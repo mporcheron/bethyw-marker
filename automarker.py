@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 
 import curses
-import curses.textpad
 import collections
 import emoji
 import math
@@ -23,7 +21,7 @@ class marker:
   def __init__(self, student_id):
     self.stdscr        = None
     self.start_pos     = 0
-    self.auto_progress = False
+    self.auto_progress = True
 
     # student's detail)
     self.student_id      = student_id
@@ -32,7 +30,6 @@ class marker:
     self.max_marks       = self.total_marks
     self.marks_breakdown = collections.OrderedDict()
     self.feedback        = ""
-    self.error_details   = ""
 
     # The busy timer shows an animated ellipsis while computation is happening
     self.busy_dots       = 0
@@ -47,8 +44,8 @@ class marker:
     self.progress["setup"]            = stage("Copy student's submission into temporary marking directory", coursework.setup)
     self.progress["readme"]           = stage("Read the student's README",                                  coursework.readme)
     self.progress["git"]              = stage("Review Git commits",                                         coursework.git)
+    self.progress["opensrc"]          = stage("Begin reading through the student's code",                   coursework.opensrc)
     self.progress["compile"]          = stage("Compile the student's coursework and check for warnings",    coursework.compile)
-    self.progress["unittest_compile"] = stage("Compile the student's coursework with Catch2",               coursework.unittest_compile)
     self.progress["unittest"]         = stage("Test the student's coursework against automated tests",      coursework.unittest)
     self.progress["memtest"]          = stage("Run the coursework with Valgrind",                           coursework.memtest)
     self.progress["function_ordering"]= stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
@@ -82,7 +79,7 @@ class marker:
     curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     
     # error popup windows
-    curses.init_pair(5, curses.COLOR_WHITE,   curses.COLOR_RED)
+    curses.init_pair(5, curses.COLOR_RED,     curses.COLOR_BLACK)
     
     # non-error popup windows
     curses.init_pair(6, curses.COLOR_GREEN,   curses.COLOR_BLACK)
@@ -184,16 +181,13 @@ class marker:
     self.win_title.refresh()
 
 
-  def refresh_body(self, function = None):
+  def refresh_body(self):
     self.win_body.erase()
     self.win_body.move(3, 1)
 
     max_display = self.max_y_body - 1
 
-    if function == None:
-      function = self.show_progress
-    function(max_display)
-
+    self.show_progress(max_display)
     self.win_body.refresh()
 
 
@@ -264,7 +258,9 @@ class marker:
         return decision[keys[selected_option]]
 
 
-  def setup_viewtext(self, title, contents):
+  def setup_viewtext(self, title, contents, is_error=False):
+    colour = curses.color_pair(5) if is_error else curses.color_pair(6)
+      
     start_y = 4
     start_x = 10
     height = self.max_y - 7
@@ -274,7 +270,7 @@ class marker:
     self.win_viewtext.box()
 
     title = " " + title + " (enter to close) "
-    self.win_viewtext.addstr(0, int((width - len(title)) / 2), title, curses.color_pair(6) | curses.A_BOLD)
+    self.win_viewtext.addstr(0, int((width - len(title)) / 2), title, colour | curses.A_BOLD)
 
     self.win_viewtext.refresh()
     curses.doupdate()
@@ -319,10 +315,11 @@ class marker:
     for num, line in enumerate(formatted_contents_by_line):
       formatted_contents_by_line[num] = line.ljust(max_visible_columns, ' ')
 
-    self.refresh_viewtext(formatted_contents_by_line, 0)
+    self.refresh_viewtext(formatted_contents_by_line, 0, is_error)
 
 
-  def refresh_viewtext(self, contents_by_line, current_starting_line = 0):
+  def refresh_viewtext(self, contents_by_line, current_starting_line = 0, is_error=False):
+    colour = curses.color_pair(1) if is_error else curses.color_pair(6)
     total_lines = len(contents_by_line)
     
     start_printing_at = 1
@@ -334,7 +331,7 @@ class marker:
     
     for actual_line in range(current_starting_line, total_lines):
       y_pos = start_printing_at + num_printed_lines
-      self.win_viewtext.addstr(y_pos, 2, contents_by_line[actual_line], curses.color_pair(6))
+      self.win_viewtext.addstr(y_pos, 2, contents_by_line[actual_line], colour)
       
       if actual_line == 0:
         at_start_of_text = True
@@ -346,48 +343,19 @@ class marker:
         break
     
     self.win_viewtext.refresh()
-    # curses.doupdate()
     
     while True:
       char =  self.win_viewtext.getch()
       if char == 65 and not at_start_of_text: # up arrow
-        self.refresh_viewtext(contents_by_line, current_starting_line - 1)
+        self.refresh_viewtext(contents_by_line, current_starting_line - 1, is_error)
         break
       elif char == 66 and not at_end_of_text: # down arrow
-        self.refresh_viewtext(contents_by_line, current_starting_line + 1)
+        self.refresh_viewtext(contents_by_line, current_starting_line + 1, is_error)
         break
       elif char == 10: # enter
         return
       
       self.win_viewtext.refresh()
-
-    # max_line_num = height - 3
-    # max_line_width = width - 4.0
-    #
-    # contents_by_line = contents.split('\n')
-    # start_at_line = 0
-    # num_lines = len(list(contents_by_line))
-    # while True:
-    #   additional_lines = 0
-    #   for line_num in range(start_at_line, start_at_line+max_line_num):
-    #     if line_num > (start_at_line + max_line_num - additional_lines):
-    #       break
-    #     spans_num_lines = math.ceil(len(contents_by_line[line_num]) / max_line_width)
-    #     for j in range(0, spans_num_lines):
-    #       start = j * max_line_width
-    #       end = (j+1) * max_line_width
-    #       this_line = str(contents_by_line[line_num])
-    #       this_line = line[start:end]
-    #       self.win_viewtext.addstr(1 + line_num - start_at_line + additional_lines + j, 3, , curses.color_pair(6))
-    #     additional_lines += (spans_num_lines - 1)
-    #
-    #
-    #   self.win_viewtext.refresh()
-
-    # try:
-
-    # except KeyboardInterrupt:
-    #   return
 
 
   def show_progress(self, max_display):
@@ -408,16 +376,6 @@ class marker:
       i += 1
 
 
-  def show_details(self, max_display):
-    colour = curses.color_pair(5)
-    self.win_body.addstr(self.start_pos + 1, 2, "ERROR DETAILS", colour)
-    i = 1
-    for line in self.error_details.split('\n'):
-      line_num = i + self.start_pos + 2
-      if line_num < max_display:
-        self.win_body.addstr(line_num, 2, line, colour)
-
-
   def make_progress(self):
     if self.current_stage != -1:
       pass
@@ -433,7 +391,9 @@ class marker:
                                              self.feedback)
 
     self.status        = stage_result.updated_label
-    self.error_details = stage_result.details
+    
+    if stage_result.stderr is not None:
+      self.setup_viewtext("ERROR: " + self.status.upper(), stage_result.stderr, True)
 
     if stage_result.view_text != None:
       self.setup_viewtext(stage_result.view_text[0], stage_result.view_text[1])
@@ -470,7 +430,7 @@ class marker:
     # progress onto next stage
     self.current_stage = stage_result.next_stage
     self.refresh_marks()
-    self.refresh_body(self.show_details if stage_result.details else None)
+    self.refresh_body()
     self.refresh_command(True)
 
 
@@ -506,7 +466,7 @@ class stage_result:
     self.student_max_marks = student_max_marks
     self.decision = decision
     self.view_text = view_text
-    self.details = details
+    self.stderr = details
 
 
 
@@ -571,7 +531,9 @@ class coursework:
       shutil.copytree("./" + student_id + "/src",
                       coursework.TEST_SRC_DIR + "/src")
     except FileNotFoundError:
-      return stage_result("Student src/ directory missing", -1)
+      return stage_result(
+        updated_label = "Student src/ directory missing",
+        next_stage    = None)
 
     return stage_result(
       updated_label = "Student files successfilly copied into temporary marking directory",
@@ -609,14 +571,22 @@ class coursework:
       return stage_result(
         updated_label = ".git/ directory opened in external application",
         decision      = decision,
-        next_stage    = "compile")
+        next_stage    = "opensrc")
     else:
-      feedback += "You did not include your .git/ directory, thus you will receive 0 marks for this coursework. You were told multiple times in lectures and in the coursework specification that you must include the .git/ directory"
+      feedback += "You did not include your .git/ directory, thus you will receive 0 marks for this coursework. You were told multiple times in lectures and in the coursework specification that you must include the .git/ directory.\n\n"
       return stage_result(
         updated_label     = "No .git/ directory included - maximum marks set to 0",
         student_feedback  = feedback,
         student_max_marks = 0,
-        next_stage        = "compile")
+        next_stage        = "opensrc")
+
+
+  def opensrc(student_id, marks, feedback):
+    cmd = coursework.CMD_OPEN_CODE + [coursework.TEST_SRC_DIR + "/src"]
+    res = subprocess.run(cmd)
+    return stage_result(
+      updated_label     = "Source code opened in external application",
+      next_stage        = "compile")
 
 
   def compile(student_id, marks, feedback):
@@ -640,7 +610,7 @@ class coursework:
       feedback += "Your code compiles without issuing any warnings from the compiler, which is great. You should never be submitting code with errors or warnings, even if the code is incomplete.\n\n"
       return stage_result(
         updated_label    = "Coursework compiled without warnings",
-        next_stage       = "unittest_compile",
+        next_stage       = "unittest",
         student_feedback = feedback,
         student_marks    = 5)
 
@@ -649,7 +619,7 @@ class coursework:
       feedback += "It looks like your code has some warnings from the compiler? You should aim to always produce code that has no warnings or errors, even if it is incomplete and does not implement all the functionality. This was a relatively easy area to pick up some marks (i.e. the code you were given compiles without warnings already).\n\n"
       return stage_result(
         updated_label    = "Coursework compiled with warnings",
-        next_stage       = "unittest_compile",
+        next_stage       = "unittest",
         student_feedback = feedback,
         student_marks    = 0)
 
@@ -661,14 +631,14 @@ class coursework:
       details = res.stderr.decode("utf-8")
 
       return stage_result(
-        updated_label    = "!! Coursework failed to compile with result {0} !!".format(res.returncode),
+        updated_label    = "Coursework failed to compile with result {0}".format(res.returncode),
         next_stage       = "quality",
         student_feedback = feedback,
         student_marks    = 0,
         details          = details)
 
 
-  def unittest_compile(student_id, marks, feedback):
+  def __unittest_compile(unittest):
     cmd = ["g++",
            "-O0",
            "--std=c++14",
@@ -678,146 +648,226 @@ class coursework:
            "./src/areas.cpp",
            "./src/area.cpp",
            "./src/measure.cpp",
-           "./tests/testallus.cpp",
+           "./tests/" + unittest + ".cpp",
             coursework.CATCH2_EXE,
             "-o",
-            "./bin/bethyw-test"]
+            "./bin/bethyw-" + unittest]
     res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
 
-    feedback = "UNIT TESTING\n"
-    if res.returncode != 0:
-      feedback += "\n\n"
-
-      # details = ' '.join(cmd) + "\n\n"
-      details = res.stderr.decode("utf-8")
-
-      return stage_result(
-        updated_label    = "!! Compilation with Catch2 failed with result {0} !!".format(res.returncode),
-        next_stage       = None,
-        details          = details)
-
-    return stage_result(
-        updated_label    = "Coursework compiled with Catch2",
-        next_stage       = "unittest",
-        student_marks    = 0)
+    if res.returncode == 0:
+      return True
+    else:
+      return res.stderr.decode("utf-8") 
 
 
   def unittest(student_id, marks, feedback):
-    cmd = ["./bin/bethyw-test", "-r", "xml"]
-    res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
+    test_files = [
+      "test1",
+      "test2",
+      "test3",
+      "test4",
+      "test5",
+      "test6",
+      "test7",
+      "test8",
+      "test9",
+      "test10",
+      "test11",
+      "test12",
+      "testus1",
+      "testus2",
+      "testus3",
+      "testus4",
+      "testus5",
+      "testus6",
+      "testus7",
+      "testus8",
+      "testus9",
+      "testus10"
+    ]
 
-    if res.returncode != 0:
-      details = res.stderr.decode("utf-8")
-      return stage_result(
-        updated_label = "Execution of unit tests failed with result: " + str(res.returncode),
-        next_stage    = None,
-        details       = details)
-        
-    catch2xml = res.stdout.decode("utf-8")
+    all_scenarios = {
+      "[args][datasets]"                    : (1, "unit", "seen",   "The datasets program argument can be parsed correctly"),
+      "[areas][args]"                       : (1, "unit", "seen",   "The areas program argument can be parsed correctly"),
+      "[args][measures]"                    : (1, "unit", "seen",   "The measures program argument can be parsed correctly"),
+      "[args][years]"                       : (1, "unit", "seen",   "The year program argument can be parsed correctly"),
+      "[InputFile][existent]"               : (2, "unit", "seen",   "A source file can be opened and read"),
+      "[InputFile][nonexistent]"            : (1, "unit", "seen",   "A nonexistant source file cannot be opened for reading"),
+      "[Measure][construct]"                : (2, "unit", "seen",   "A Measure object can be constructed with a codename and label"),
+      "[Measure][populate]"                 : (2, "unit", "seen",   "A Measure object can be populated with values"),
+      "[Area][construct]"                   : (1, "unit", "seen",   "An Area instance be constructed with a local authority code"),
+      "[Area][names]"                       : (2, "unit", "seen",   "An Area instance can have names in multiple languages"),
+      "[Areas<>][construct]"                : (1, "unit", "seen",   "An Areas<> instance can be constructed"),
+      "[Areas<>][contain]"                  : (3, "unit", "seen",   "An Areas<> instance can contain Area instances"),
+      "[Areas<>][authorityCodeCSV]"         : (3, "unit", "seen",   "areas.csv can be correctly parsed"),
+      "[Area][Measures]"                    : (2, "unit", "seen",   "An Area instance can contain Measure instances"),
+      "[Areas<>][popu1009]"                 : (4, "unit", "unseen", "popu1009.json can be correctly parsed"),
+      "[args][extended][years]"             : (1, "unit", "unseen", "The year program argument can be parsed correctly [extended]"),
+      "[Measure][extended][populate]"       : (1, "unit", "unseen", "A Measure object can be populated with values [extended]"),
+      "[Areas<>][contain][extended]"        : (1, "unit", "unseen", "An Areas<> instance can contain Area instances [extended]"),
+      "[Area][Measures][extended]"          : (1, "unit", "unseen", "An Area instance can contain Measure instances [extended]"),
+      "[Areas<>][extended][popu1009]"       : (1, "unit", "unseen", "popu1009.json can be correctly parsed [extended for non-lowercase]"),
+      "[Areas<>][popu1009][statistics]"     : (2, "unit", "unseen", "Statistics can be correctly calculated from imported data"),
+      "[Areas<>][econ0080]"                 : (2, "unit", "unseen", "econ0080.json can be correctly parsed"),
+      "[Areas<>][envi0201]"                 : (2, "unit", "unseen", "envi0201.json can be correctly parsed"),
+      "[Areas<>][tran0152]"                 : (4, "unit", "unseen", "tran0152.json can be correctly parsed"),
+      "[Areas<>][complete-popu1009-popden]" : (4, "unit", "unseen", "complete-popu1009-popden.csv can be correctly parsed")
+    } # total = 46    
     
-    with open(coursework.MARKS_DIR + "/" + student_id + '-catch2.xml', 'w') as file:
-      file.write(catch2xml)
+    test_files_attempted = 0
+    test_files_compiled  = 0
+    test_files_failed    = 0
+    
+    num_total_scenarios  = 0
+    num_passed_scenarios = 0
+    num_failed_scenarios = 0
+    passed_scenarios = []
+    failed_scenarios = []
+    
+    num_total_tests  = 0
+    num_passed_tests = 0
+    num_failed_tests = 0
 
-    # Parse Catch2 unit tests outcomes
-    root = ET.XML(catch2xml)
+    total_marks = 0
+    
+    # changes neede, test_files_failed => add feedback on tests scripts can't compile due to missing setions
 
     df = pd.DataFrame(columns = ["student","filename", "tags", "result"])
     df = df.astype({"student": int})
     df = df.astype({"filename": str})
     df = df.astype({"tags": str})
     df = df.astype({"result": str})
-
-    catch2_marks = 0
-    total_tests = 0
-    total_passes = 0
-    passed_scenarios = []
-    failed_scenarios = []
-
-    marks_by_tag = { 
-      "[args][datasets]"                : (1, "unit", "seen",   "Datasets argument parsed correctly", "Datasets argument parsed incorrectly"),
-      "[areas][args]"                   : (1, "io",   "seen",   "Areas argument parsed correctly",    "Explanation"),
-      "[args][measures]"                : (1, "io",   "seen",   "Measures argument parsed correctly", "Explanation"),
-      "[args][years]"                   : (1, "unit", "seen",   "Years argument parsed correctly",    "Explanation"),
-      "[InputFile][existent]"           : (2, "unit", "seen",   "InputFile works correctly with valid files", "Explanation"),
-      "[InputFile][nonexistent]"        : (2, "unit", "seen",   "InputFile doesn't handle invalid files well", "Explanation"),
-      "[Measure][construct]"            : (1, "unit", "seen",   "Measure can be constructed correctly", "Explanation"),
-      "[Measure][populate]"             : (3, "unit", "seen",   "Explanation", "Explanation"),
-      "[Area][construct]"               : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Area][names]"                   : (3, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][construct]"            : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][contain]"              : (3, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][authorityCodeCSV]"     : (5, "unit", "seen",   "Explanation", "Explanation"),
-      "[Area][Measures]"                : (3, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][popu1009]"             : (5, "unit", "seen",   "Explanation", "Explanation"),
-      "[args][extended][years]"         : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Measure][extended][populate]"   : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][contain][extended]"    : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Area][Measures][extended]"      : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][extended][popu1009]"   : (5, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][popu1009][statistics]" : (5, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][econ0080]"             : (2, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][envi0201]"             : (1, "unit", "seen",   "Explanation", "Explanation"),
-      "[Areas<>][tran0152]"             : (5, "unit", "seen",   "Explanation", "Explanation")
-    }
     
-    for group in root.iter("Group"):
-      for scenario in group.iter("TestCase"):
-        outcome = False
+    for test_file in iter(test_files):
+      test_files_attempted += 1
+      compile_result = coursework.__unittest_compile(test_file)
 
-        scenario_label = scenario.get("name").replace('Scenario: ', '')
-        scenario_label = scenario_label[0].upper() + scenario_label[1:]
+      if compile_result is not True:
+        test_files_failed += 1  
+        with open(coursework.MARKS_DIR + "/" + student_id + '-catch2-' + test_file +'.txt', 'w') as file:
+          file.write("Could not compile:\n" + compile_result)
+      else:
+        test_files_compiled += 1
+        cmd = ["./bin/bethyw-" + test_file, "-r", "xml"]
+        res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
 
-        for result in scenario.iter("OverallResult"):
-          total_tests += 1
-          if result.get("success") == "true":
-            result = "pass"
-            marks = marks_by_tag[scenario.get("tags")][0]
-            catch2_marks += marks
-            passed_scenarios.append(scenario)
-            total_passes += 1
-          else:
-            result = "fail"
-            failed_scenarios.append(scenario)          
+        catch2xml  = res.stdout.decode("utf-8")
+        with open(coursework.MARKS_DIR + "/" + student_id + '-catch2-' + test_file +'.xml', 'w') as file:
+          file.write(catch2xml)
+
+        # Parse Catch2 unit tests outcomes
+        root = ET.XML(catch2xml)
+        
+        for result in root.iter("OverallResults"):
+          total_tests  = int(result.get("successes"))
+          total_tests += int(result.get("expectedFailures"))
+          total_tests += int(result.get("failures"))
+
+          passed_tests  = int(result.get("successes"))
+          passed_tests += int(result.get("expectedFailures"))
+          failed_tests  = int(result.get("failures"))
           break
 
-        df = df.append({"student"  : student_id,
-                        "filename" : scenario.get("filename"),
-                        "tags"     : scenario.get("tags"),
-                        "result"   : result,
-                        "scenario" : scenario_label,
-                        "marks"    : marks},
+        for group in root.iter("Group"):
+          for scenario in group.iter("TestCase"):
+            num_total_scenarios += 1
+
+            scenario_label = scenario.get("name").replace('Scenario: ', '')
+
+            for overall_result in scenario.iter("OverallResult"):
+              if overall_result.get("success") == "true":
+                result = "pass"
+
+                num_passed_scenarios += 1
+                passed_scenarios.append(scenario.get("tags"))
+              
+                marks = all_scenarios[scenario.get("tags")][0]
+                total_marks += marks
+              else:
+                result = "fail"
+
+                num_failed_scenarios += 1
+                failed_scenarios.append(scenario.get("tags"))
+              break
+            break
+          break
+
+        num_total_tests += total_tests
+        num_passed_tests += passed_tests
+        num_failed_tests += failed_tests
+        df = df.append({"student"         : student_id,
+                        "filename"        : scenario.get("filename"),
+                        "tags"            : scenario.get("tags"),
+                        "result"          : result,
+                        "scenario"        : scenario_label,
+                        "marks"           : marks,
+                        "tests_passed"    : passed_tests,
+                        "tests_failed"    : failed_tests},
                         ignore_index=True)
 
     df.to_csv(coursework.MARKS_DIR + "/" + student_id + '-catch2.csv', index=False)
 
-
-    feedback = "FUNCTIONAL TESTING\nWe ran your code through {0} different tests. Some of these tests examined individual functions, where as some assessed your overall program performance. ".format(total_tests)
-    if total_passes == total_tests:
-      feedback += "Your code passed all the tests, which is an excellent outcome, especially as you were not provided complete test coverage."
-    elif total_passes > (total_tests/4*3):
-      feedback += "Your code passed {0} the tests, which is still a great outcome, especially as you were not provided complete test coverage. Your code didn't pass the following scenarios:\n"
-    elif total_passes > (total_tests/4*2):
-      feedback += "Your code passed {0} the tests, which is an alright outcome, especially as you were not provided complete test coverage. Your code didn't pass the following scenarios:\n"
-    elif total_passes > (total_tests/4):
-      feedback += "Your code passed {0} the tests, which is an alright outcome, especially as you were not provided complete test coverage. Your code didn't pass the following scenarios:\n"
-    elif total_passed == 0:
-      feedback += "Your code didn't pass any of the tests. Given you were provided quite a few of the tests, this is somewhat dissapointing. Your code didn't pass the following scenarios:\n"
+    # Report compilation 
+    feedback  = "FUNCTIONAL TESTING\nWe tried to run your code through {0} different tests scripts (including the 12 which had been shared with you in advance). Some of these tests examined individual functions, whereas some assessed your overall program performance.\n\n".format(test_files_attempted)
+    feedback += "With your coursework, {0}/{1} of the test files compiled successfuly. Compilation fails in situations where you have not implemented the functions in the expected/requested format, e.g. return type, function arguments, const etc. don't match what is expected in the test script, thus g++ fails to compile the script with your code. ".format(test_files_compiled, test_files_attempted)
+    if test_files_compiled == test_files_attempted:
+      feedback += "The fact that all the test files compiled is a great indication In addition to compiling with all the tests, "
+    elif test_files_compiled >= (test_files_attempted/4*3):
+      feedback += "The fact that most the test files compiled is a great indication. In addition to compiling with most the tests, "
+    elif test_files_compiled >= (test_files_attempted/2):
+      feedback += "A good number of the test files compiled, which is a great start. Of the tests which compiled, "
+    elif test_files_compiled == 0:
+      feedback += "Sadly, none of the test files failed to compile with your coursework. Given you were provided quite a few of the tests, this is somewhat dissapointing. The total list of scenarios was:\n"
+    elif test_files_compiled == 1:
+      feedback += "Your code compiled with just 1 test. Given you were provided quite a few of the tests, this is somewhat dissapointing. Of the tests which compiled, "
+    elif test_files_compiled < (test_files_attempted/4):
+      feedback += "Your code compiled with less than 25% of the tests. Given you were provided quite a few of the tests, this is somewhat dissapointing. Of the tests which compiled, "
     else:
-      feedback += "Your code passed just {0} the tests, which given you were provided quite a few of the tests, is somewhat dissapointing. Your code didn't pass the following scenarios:\n"
-    
-    for failed_scenario in iter(failed_scenarios):
-        feedback += " - " + failed_scenario + "\n"
+      feedback += "Your code compiled with less than half of the tests. Given you were provided quite a few of the tests, this is somewhat dissapointing. Of the tests which compiled, "
+      
+    found_tags = []
+    if test_files_compiled > 0:
+      if test_files_compiled == test_files_attempted and num_passed_scenarios == num_total_scenarios:
+        feedback += "your code passed the following {0} scenarios, which was all of them!. The tests were:\n".format(num_passed_scenarios)
+      elif num_passed_scenarios == num_total_scenarios:
+        feedback += "your code passed the following {0} scenarios (which was all of those which compiled). The list of passing tests was:\n".format(num_passed_scenarios)
+      elif num_passed_scenarios >= (num_total_scenarios/4*3):
+        feedback += "your code passed {0} tests. The list of passing tests was:\n".format(num_passed_scenarios)
+      elif num_passed_scenarios == 0:
+        feedback += "sadly none of them passed.\n"
+      elif num_passed_scenarios == 1:
+        feedback += "your code passed {0}. The passing test was:\n".format(num_passed_scenarios)
+      elif num_passed_scenarios >= (num_total_scenarios/2):
+        feedback += "your code passed {0}. The list of passing tests was:\n".format(num_passed_scenarios)
+      elif num_passed_scenarios < (num_total_scenarios/4):
+        feedback += "{0} passed. The list of passing tests was:\n".format(num_passed_scenarios)
+      
+      for passed_scenario in iter(passed_scenarios):
+        found_tags.append(passed_scenario)
+        feedback += "  - " + all_scenarios[passed_scenario][3] + "\n"
 
-    if len(failed_scenarios) == 0:
-      feedback += "\n"
+      if num_failed_scenarios == 1:
+        feedback += "\nThere was {0} scenario where your code did not pass:\n".format(num_failed_scenarios)
+      elif num_failed_scenarios > 0:
+        feedback += "\nThere were {0} scenarios where your code did not pass the tests:\n".format(num_failed_scenarios)
+        for failed_scenario in iter(failed_scenarios):
+          feedback += "  - " + all_scenarios[failed_scenario][3] + "\n"
+
+      if test_files_failed > 0:
+        feedback += "\nThe files your code did not compile with correctly contained the following scenarios:\n"
+
+    if test_files_failed > 0:
+      for tag, scenario in all_scenarios.items():
+        if tag not in found_tags: 
+          feedback += "  - " + scenario[3] + "\n"
 
     feedback += "\n"
 
     return stage_result(
-      updated_label    = "Unit tests completed ({0}/{1})".format(total_passes,total_tests),
+      updated_label    = "Testing completed ({0} compiled, {1} not compiled, {2} scenarios passed, {3} scenarios failed)".format(test_files_compiled, test_files_failed, num_passed_scenarios, num_failed_scenarios),
       next_stage       = "memtest",
       student_feedback = feedback, #TODO
-      student_marks    = catch2_marks) # TODO
+      student_marks    = total_marks) # TODO
 
 
   def memtest(student_id, marks, feedback):
@@ -833,7 +883,7 @@ class coursework:
       details = res.stderr.decode("utf-8")
 
       return stage_result(
-        updated_label = "!! Running with valgrind failed with result {0} !!".format(res.returncode),
+        updated_label = "Running with valgrind failed with result {0}".format(res.returncode),
         next_stage    = None,
         details       = details)
 
@@ -939,9 +989,6 @@ class coursework:
 
 
   def quality(student_id, marks, feedback):
-    cmd = coursework.CMD_OPEN_CODE + [coursework.TEST_SRC_DIR + "/src"]
-    res = subprocess.run(cmd)
-
     multidecision = [
         {"comments1": ("Good commenting in relevant places",                                                  3, "You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. "),
          "comments2": ("Could have included additional comments to explain complex chunks of code",           2, "You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. "),

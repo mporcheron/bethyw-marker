@@ -1,3 +1,7 @@
+_bin/*
+_marks/*
+_tempsrc/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
