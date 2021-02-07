@@ -687,33 +687,36 @@ class coursework:
     ]
 
     all_scenarios = {
-      "[args][datasets]"                    : (1, "unit", "seen",   "The --datasets program argument can be parsed a list of datasets to import can be generated correctly [test1.cpp in the provided code]"),
+      "[args][datasets]"                    : (1, "unit", "seen",   "The --datasets program argument can be parsed as list of datasets to import can be generated correctly [test1.cpp in the provided code]"),
       "[areas][args]"                       : (1, "unit", "seen",   "The --areas program argument can be parsed correctly, whether it is a single area's code, a comma-separated list of codes, contains 'all' as a value, or is missing; and a filter list can be generated correctly [test2.cpp in the provided code]"),
       "[args][measures]"                    : (1, "unit", "seen",   "The --measures  program argument can be parsed correctly, whether it is a single measure's codename, a comma-separated list of codenames, contains 'all' as a value, or is missing; and a filter list can be generated correctly [test3.cpp in the provided code]"),
       "[args][years]"                       : (1, "unit", "seen",   "The --years program argument can be parsed correctly, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, '0', '0-0', or invalid due to the presence of non-numerical values; and a filter tuple can be generated correctly [test4.cpp in the provided code]"),
-      "[args][extended][years]"             : (1, "unit", "unseen", "Your --years program argument throws the correct exception is an incorrect length (e.g. two digits)"),
+      "[args][extended][years]"             : (1, "unit", "unseen", "The --years program argument throws the correct exception is an incorrect length (e.g. two digits)"),
       "[InputFile][existent]"               : (2, "unit", "seen",   "When given a valid path to a dataset file, an InputFile object is constructed and can return a reference to a stream [test5.cpp in the provided code]"),
       "[InputFile][nonexistent]"            : (1, "unit", "seen",   "When given an invalid path to a dataset file, an InputFile object is constructed but will throw an exception when an attempt is made to retrieve a reference to a stream [test5.cpp in the provided code]"),
       "[Measure][construct]"                : (2, "unit", "seen",   "A Measure object can be constructed in your coursework, where the constructor is given an std::string codename (which is converted to lowercase) and label, with a default size of 0 [test6.cpp in the provided code]"),
-      "[Measure][populate]"                 : (2, "unit", "seen",   "Your Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception [test7.cpp in the provided code]"),
-      "[Measure][extended][populate]"       : (1, "unit", "unseen", "Your Measure object will replace an existing value when given a new value for an existing year"),
+      "[Measure][populate]"                 : (2, "unit", "seen",   "A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception [test7.cpp in the provided code]"),
+      "[Measure][extended][populate]"       : (1, "unit", "unseen", "A Measure object will replace an existing value when given a new value for an existing year"),
       "[Area][construct]"                   : (1, "unit", "seen",   "An Area instance be constructed in your coursework with a local authority code [test8.cpp in the provided code]"),
-      "[Area][names]"                       : (2, "unit", "seen",   "Your Area instance can contain multiple names in different languages with three-letter language codes, which are converted to lowercase; setting names with non-alphabetical language codes or retrieving names in non-set languages throws an exception [test8.cpp in the provided code]"),
-      "[Area][Measures]"                    : (2, "unit", "seen",   "Your Area instance can contain Measure instances and return values, if two Measure instances have the same codename, the second one to be inserted will be merged into and replacing any existing values in the first inserted value [test9.cpp in the provided code]"),
-      "[Areas<>][contain]"                  : (3, "unit", "seen",   "Your Areas<> instance can be populated with Area instances, and where a new instance has the same local authority code as an existing instance, the result is a merged Area instance [test9.cpp in the provided code]"),
-      "[Areas<>][construct]"                : (1, "unit", "seen",   "An Areas<> instance can be constructed in your coursework [test10.cpp in the provided code]"),
+      "[Area][names]"                       : (2, "unit", "seen",   "An Area instance can contain multiple names in different languages with three-letter language codes, which are converted to lowercase; setting names with non-alphabetical language codes or retrieving names in non-set languages throws an exception [test8.cpp in the provided code]"),
+      "[Area][Measures]"                    : (2, "unit", "seen",   "An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename [test9.cpp in the provided code]"),
+      "[Areas<>][contain]"                  : (3, "unit", "seen",   "An Areas instance can be populated with Area instances, and cannot contain two Area instances with the same local authority code [test10.cpp in the provided code]"),
+      "[Areas<>][construct]"                : (1, "unit", "seen",   "An Areas instance can be constructed in your coursework [test10.cpp in the provided code]"),
       "[Areas<>][authorityCodeCSV]"         : (4, "unit", "seen",   "areas.csv can be correctly parsed by your code in Areas<>::populateFromAuthorityCodeCSV() [test11.cpp in the provided code]"),
       "[Areas<>][popu1009]"                 : (4, "unit", "seen"  , "popu1009.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON() [test12.cpp in the provided code]"),
 
+      "[Areas<>][contain][extended]"        : (1, "unit", "unseen", "An Areas instance will merge two Area instances' values when given the same key (local authority code and Measure codename), e.g. two areas will be properly merged (names and Measures) if they have the same local authority code"),
+      "[Area][Measures][extended]"          : (1, "unit", "unseen", "An Area instance will merge in values when given a Measure with the name matching the original"),
+
       # TODO naming:
-      "[Areas<>][contain][extended]"        : (1, "unit", "unseen", "An Areas<> instance can contain Area instances [extended]"),
-      "[Area][Measures][extended]"          : (1, "unit", "unseen", "An Area instance can contain Measure instances [extended]"),
-      "[Areas<>][extended][popu1009]"       : (1, "unit", "unseen", "popu1009.json can be correctly parsed [extended for non-lowercase]"),
-      "[Areas<>][popu1009][statistics]"     : (2, "unit", "unseen", "Statistics can be correctly calculated from imported data"),
-      "[Areas<>][econ0080]"                 : (2, "unit", "unseen", "econ0080.json can be correctly parsed"),
-      "[Areas<>][envi0201]"                 : (2, "unit", "unseen", "envi0201.json can be correctly parsed"),
-      "[Areas<>][tran0152]"                 : (4, "unit", "unseen", "tran0152.json can be correctly parsed"),
-      "[Areas<>][complete-popu1009-popden]" : (4, "unit", "unseen", "complete-popu1009-popden.csv can be correctly parsed")
+      "[Areas<>][extended][popu1009]"       : (1, "unit", "unseen", "Measure codenames are imported and converted to lowercase when populated from a dataset stream"),
+      "[Areas<>][popu1009][statistics]"     : (2, "unit", "unseen", "The requested statistics (difference, differance as percentage, and mean) can be correctly calculated from the imported data"),
+      
+      "[Areas<>][econ0080]"                 : (2, "unit", "unseen", "econ0080.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON()"),
+      "[Areas<>][envi0201]"                 : (2, "unit", "unseen", "envi0201.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON()"),
+      "[Areas<>][tran0152]"                 : (4, "unit", "unseen", "tran0152.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON()"),
+
+      "[Areas<>][complete-popu1009-popden]" : (4, "unit", "unseen", "The extended CSV files can be correctly parsed by your code in Areas<>::populateFromAuthorityByYearCSV()")
 
       # create unit tests for 8 marks for testing output
     } # total = 47

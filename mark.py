@@ -9,6 +9,12 @@ from automarker import marker
 parser = argparse.ArgumentParser(description='Mark CSC371 20/21 Coursework')
 
 parser.add_argument(
+  '-a', '--autograder',
+  type=str, 
+  default='_marks/autograder.csv',
+  help="Autograder export CSV")
+
+parser.add_argument(
   '-s', '--student',
   type=str, 
   required=True,
