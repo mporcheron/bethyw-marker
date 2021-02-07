@@ -16,13 +16,16 @@ import xml.etree.ElementTree as ET
 # curses implementation based on PyRadio: in
 
 class marker:
-  MARKS_DIR = os.getcwd() + "/_marks"
+  MARKS_DIR       = os.getcwd() + "/_marks"
+  AUTOGRADER_FILE = MARKS_DIR + "/autograder.csv"
 
-  def __init__(self, student_id):
+  def __init__(self, autograder_file, student_id):
     self.stdscr        = None
     self.start_pos     = 0
     self.auto_progress = True
-
+    
+    marker.AUTOGRADER_FILE = autograder_file
+    
     # student's detail)
     self.student_id      = student_id
     self.marks           = 0
@@ -40,19 +43,16 @@ class marker:
     self.status = "Initialise marker system"
 
     self.progress = collections.OrderedDict()
-    self.progress["catch2"]           = stage("Compile Catch2 binary",                                      coursework.catch2)
     self.progress["setup"]            = stage("Copy student's submission into temporary marking directory", coursework.setup)
+    self.progress["autograder"]       = stage("Parse autograder output",                                    coursework.autograder)
     self.progress["readme"]           = stage("Read the student's README",                                  coursework.readme)
-    self.progress["git"]              = stage("Review Git commits",                                         coursework.git)
     self.progress["opensrc"]          = stage("Begin reading through the student's code",                   coursework.opensrc)
-    self.progress["compile"]          = stage("Compile the student's coursework and check for warnings",    coursework.compile)
-    self.progress["unittest"]         = stage("Test the student's coursework against automated tests",      coursework.unittest)
     self.progress["memtest"]          = stage("Run the coursework with Valgrind",                           coursework.memtest)
     self.progress["function_ordering"]= stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
     self.progress["quality"]          = stage("Evaluate the coding quality",                                coursework.quality)
     #self.progress["feedback"]         = stage("Modify the feedback",                                        coursework.feedback)
 
-    self.current_stage = "catch2"
+    self.current_stage = "setup"
 
   def run(self, stdscr):
     self.stdscr = stdscr
@@ -484,24 +484,6 @@ class coursework:
   CMD_OPEN_FEEDBACK = ["open","-a","TextMate"]
 
 
-  def catch2(student_id, marks, feedback):
-    if os.path.isfile(coursework.CATCH2_EXE):
-      return stage_result("Catch2 already compiled", "setup")
-
-    cmd = ["g++",
-           "--std=c++11",
-           "-c",
-           coursework.ORIG_SRC_DIR + "/libs/catch2/catch_main.cpp",
-           "-o",
-           coursework.CATCH2_EXE]
-
-    res = subprocess.run(cmd, capture_output=True)
-    if res.returncode != 0:
-      return stage_result("Could not compile Catch2 binary", -1)
-
-    return stage_result("Catch2 binary successfully compiled", "setup")
-
-
   def __rmdir(directory):
     if os.path.isdir(directory):
       for root, dirs, files in os.walk(directory):
@@ -509,35 +491,317 @@ class coursework:
           os.remove(os.path.join(root, file))
 
       shutil.rmtree(directory)
+    os.rmdir(directory)
 
 
   def setup(student_id, marks, feedback):
-    coursework.__rmdir(coursework.TEST_SRC_DIR)
+    try:
+      coursework.__rmdir(coursework.TEST_SRC_DIR)
+    except FileNotFoundError:
+      pass
+      
     shutil.copytree(coursework.ORIG_SRC_DIR, coursework.TEST_SRC_DIR)
 
     try:
-      shutil.copy("./" + student_id + "/README.md",
-                  coursework.TEST_SRC_DIR + "/README.md")
+      coursework.__rmdir(student_id + "/bin")
     except FileNotFoundError:
       pass
 
-    try:
-      shutil.copytree("./" + student_id + "/.git",
-                      coursework.TEST_SRC_DIR + "/.git")
-    except FileNotFoundError:
-      pass
-
-    try:
-      shutil.copytree("./" + student_id + "/src",
-                      coursework.TEST_SRC_DIR + "/src")
-    except FileNotFoundError:
-      return stage_result(
-        updated_label = "Student src/ directory missing",
-        next_stage    = None)
+    # try:
+    for src_dir, dirs, files in os.walk(student_id):
+      dst_dir = src_dir.replace(student_id, coursework.TEST_SRC_DIR, 1)
+      
+      if not os.path.exists(dst_dir):
+        os.makedirs(dst_dir)
+      
+      for file in files:
+        src_file = os.path.join(src_dir, file)
+        dst_file = os.path.join(dst_dir, file)
+        shutil.copy(src_file, dst_file)
 
     return stage_result(
-      updated_label = "Student files successfilly copied into temporary marking directory",
-      next_stage    = "readme")
+      updated_label = "Student files successfully copied into temporary marking directory",
+      next_stage    = "autograder")
+
+
+  def autograder(student_id, marks, feedback):
+    if not os.path.isfile(marker.AUTOGRADER_FILE):
+      return stage_result(
+        updated_label = "Could not load autograder results from " + marker.AUTOGRADER_FILE,
+        next_stage    = None)
+
+    key = student_id + "@Swansea.ac.uk"
+
+    df = pd.read_csv(marker.AUTOGRADER_FILE)
+    df = df.set_index('Username')
+
+    try:
+      autograder_marks = df.loc[key]
+
+      feedback = "COMPILATION\n"
+      if autograder_marks['Output tests - Compilation completed without warnings'] == 0:
+        feedback += "It looks like your code has some warnings or errors from the compiler? You should aim to always produce code that has no warnings or errors, even if it is incomplete and does not implement all the functionality. This was a relatively easy area to pick up some marks (i.e. the code you were given compiles without warnings already). You were able to test your output using the CS Autograder, which displayed this feedback to you.\n\n"
+      else:
+        feedback += "Your code compiled without issuing any warnings, even with all the extra options enabled—this is great! You should never be submitting code with errors or warnings, even if the code is incomplete.\n\n"
+
+      feedback = "PROGRAM OUTPUT\n"
+
+      # Output tests
+      if autograder_marks['Output tests Total'] == 0:
+        feedback += "It seems your code failed to pass any of the output tests. For this coursework you were given a specification and expected to program towards it. These tests were all available on the CS Autograder. The system was configured to provide the output of your program and the expected output to help you with your development. You were advised to make sure you passed these tests. "
+      elif autograder_marks['Output tests Total'] < 5:
+        feedback += "You code passed less than 50% of the provided output tests on the CS Autograder. The system was configured to provide the output of your program and the expected output to help you with your developed. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well in this section. "
+      elif autograder_marks['Output tests Total'] < 10:
+        feedback += "You code passed most of the provided output tests on CS Autograder. These were designed to test the basic output of your program in response to the commands, and the CS Autograder was configured to provide you with the expected output as well as the output from your program. These were easy points to score, so it is a shame you didn't quite get full marks here. "
+      else:
+        feedback += "You passed all the provided output tests, scoring all 10 mars possible. These were designed to test the basic output of your program in response to the commands. "
+
+      temp_failed = []
+      temp_passed = []
+
+      if autograder_marks['Output tests - Output 1: bethyw -d invalidataset'] == 0:
+        temp_failed.append("Your code did not output 'No dataset matches key: <invalid dataset>' to standard error (stderr) when given an invalid dataset as a program argument. This was stated in the block comment for BethYw::parseDatasetsArg() in bethyw.cpp.")
+      else:
+        temp_passed.append("Your code did output 'No dataset matches key: <invalid dataset>' to standard error (stderr) when given an invalid dataset as a program argument.")
+
+      if autograder_marks['Output tests - Output 2: bethyw --dir invalidir'] == 0:
+        temp_failed.append("Your code did not output 'Error importing dataset:\\nInputFile::open: Failed to open file <invalid dir>/areas.csv' when given a path to an invalid directory for the datasets. This should have been a combination of the exception message thrown by InputFile::open() in input.cpp and the prepending error message as stated in BethYw::loadDatasets() in bethyw.cpp.")
+      else:
+        temp_passed.append("Your code did output 'Error importing dataset:\\nInputFile::open: Failed to open file <invalid dir>/areas.csv' when given a path to an invalid directory for the datasets.")
+
+      if autograder_marks['Output tests - Output 3: bethyw -a doesnotexist -j'] == 0:
+        temp_failed.append("Your code when given an invalid area code with the JSON output flag should output an empty JSON object ({}), as stated in the block comment of Areas::toJSON() in areas.cpp.")
+      else:
+        temp_passed.append("Your code did output an empty JSON object when given a non-existant area.")
+
+      if autograder_marks['Output tests - Output 4: bethyw -d popden'] == 0:
+        if autograder_marks['Output tests - Output 5: bethyw -d popden -j'] == 0:
+          temp_passed.append("Your code did not give the expected textual output for the popden dataset. We removed all whitepace and still your output did not match. You should check on Autograder to determine why (this was visible to you during the submission period too!). Perhaps you were imported data incorrectly as your JSON output was also invalid.")
+        else:
+          temp_passed.append("Your code did not give the expected textual output for the popden dataset. We removed all whitepace and still your output did not match. You should check on Autograder to determine why (this was visible to you during the submission period too!). Despite this, your JSON output was correct suggesting the issue is in one of your operator<< functions.")
+      else:
+        if autograder_marks['Output tests - Output 5: bethyw -d popden -j'] == 0:
+          temp_failed.append("Your code had the correct textual output for the popden dataset, although curiously the JSON output does not seem to match what we expected?")
+        else:
+          temp_passed.append("Your code gave the correct textual/tables output and JSON output for the popden dataset.")
+
+      if autograder_marks['Output tests - Output 6: bethyw -d biz -j'] == 0:
+        temp_failed.append("Your code did not give the expected JSON output for the biz dataset. Perphaps this was because this dataset included additional areas—you were guided in Areas::populateFromWelshStatsJSON() in areas.cpp that if you encounter additional areas in a dataset, you should import them still.")
+      else:
+        temp_passed.append("Your code generated the expected JSON output for the biz dataset, creating the additional Area objects.")
+
+      if autograder_marks['Output tests - Output 7: bethyw -d aqi -j'] == 0:
+        temp_failed.append("Your code did not give the expected JSON output for the aqi dataset. Perhaps this was because the dataset's data column errornously stores its values as strings? You were forewarned about this in the coursework assignment sheet.")
+      else:
+        temp_passed.append("Your code generated the expected JSON output for the aqi dataset, handling the badly formatted StatsWales JSON files.")
+
+      if autograder_marks['Output tests - Output 8: bethyw -d trains -j'] == 0:
+        temp_failed.append("Your code did not give the expected JSON output for the trains dataset. This dataset only contained one measure, thus needed you to modify your populate functions for these sorts of files.")
+      else:
+        temp_passed.append("Your code generated the expected JSON output for the trains dataset, handling the fact that it was a single measure dataset.")
+
+      if autograder_marks['Output tests - Output 9: bethyw -d complete-popden -j'] == 0:
+        temp_failed.append("Your code did not give the expected JSON output for the complete-popden dataset. Either you didn't manage to implement the functionality to parse these CSV files, or your code failed to handle overwriting values and filling in the blanks of missing data.")
+      else:
+        temp_passed.append("Your code generated the expected JSON output for the complete-popden dataset, which was the specially-crafted CSV format. This means your code also correctly handled overwriting values and filling in the blanks of missing data.")
+
+      if autograder_marks['Output tests - Output 10: bethyw -d complete-pop -a W06000024 -m area'] == 0:
+        temp_failed.append("Your code did not give the expected textual output for the complete-popden dataset, when filtered for a specific area, and then a measure that was not contained in this file. You were guided how to do this in the block comment for operator<< in area.cpp.")
+      else:
+        temp_passed.append("Your code generated the expected textual output for the complete-popden dataset, when filtered for a specific area, and then a measure that was not contained in this file.")
+
+      feedback += "Using the provided output tests in autograder, we can say that:\n"
+      for temp in iter(temp_passed):
+        feedback += '  - ' + temp + '\n'          
+      for temp in iter(temp_passed):
+        feedback += '  - ' + temp + '\n'
+      feedback += '\n'
+      #
+      # if autograder_marks['Extended output tests Total'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests Total Possible'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests - Unseen output 2: bethyw -a swan -m RAIL'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests - Unseen output 3: bethyw -d popden -a swan -m RAIL'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests - Unseen output 4: bethyw -d popden -a Abertawe,Swansea '] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended output tests - Unseen outpout 6: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      #
+      #
+      #
+      #
+      # if autograder_marks['Provided Catch2 unit tests Total'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests Total Possible'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 1: The --datasets program argument can be parsed as a list of datasets to import can be generated correctly'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 2: The --areas program argument can be parsed correctly, whether it is a single area's code, a comma-separated list of codes, contains 'all' as a value, or is missing; and a filter list can be generated correctly'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 3: The --measures  program argument can be parsed correctly, whether it is a single measure's codename, a comma-separated list of codenames, contains 'all' as a value, or is missing'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 4: The --years program argument can be parsed correctly, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, '0', '0-0', or invalid due to the presence of non-numerical values'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 5: When given a path to a dataset file, an InputFile object is constructed and can return a reference to a stream if it is a valid path'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 6: A Measure object can be constructed in your coursework, where the constructor is given an std::string codename (which is converted to lowercase) and label, with a default size of 0'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 8: An Area instance can be constructed with a local authority code and contain multiple names in different languages, identified by three-letter code'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 9: An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 10: An Areas instance can be constructed populated with Area instances, and cannot contain two Area instances with the same local authority code'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 11: The dataset areas.csv can be correctly parsed by your code in Areas::populateFromAuthorityCodeCSV()'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Provided Catch2 unit tests - Test 12: The dataset popu1009.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests Total'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests Total Possible'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 1: The --years program argument throws the correct exception is an incorrect length (e.g. two digits)'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 3: An Areas instance will merge two Area instances and the names of the second Area instances will overwrite the first'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 4: An Area instance will merge in values when given a Measure with the name matching the original'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 5: Measure codenames are imported and converted to lowercase when populated from a dataset stream'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 6: The requested statistics (difference, differance as percentage, and mean) can be correctly calculated from the imported data'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 7: The dataset econ0080.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 8: The dataset envi0201.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 9: The dataset tran0152.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      #
+      # if autograder_marks['Extended Catch2 unit tests - Unseen test 10: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()'] == 0:
+      #   temp_failed.append("explanation")
+      # else:
+      #   temp_passed.append("explanation")
+      
+      
+      return stage_result(
+        updated_label    = "Autograder marks imported and feedback generated",
+        student_feedback = feedback,
+        student_marks    = autograder_marks['Total Points'],
+        next_stage       = "readme")
+    except KeyError:
+      return stage_result(
+        updated_label = "Could not find student's marks in autograder export",
+        next_stage    = None)
+      
 
 
   def readme(student_id, marks, feedback):
@@ -552,332 +816,23 @@ class coursework:
     return stage_result(
       updated_label = "README.md included and opened",
       view_text     = ("README.md", contents),
-      next_stage    = "git")
+      next_stage    = "opensrc")
 
-
-  def git(student_id, marks, feedback):
-    feedback = "USE OF GIT\n"
-    if os.path.isdir(coursework.TEST_SRC_DIR + "/.git"):
-      cmd = coursework.CMD_OPEN_GIT + [coursework.TEST_SRC_DIR]
-      res = subprocess.run(cmd)
-
-      decision = {
-          "excellent": ("Perfect use of granular commits, few files at a time, and commit messages",      10, feedback + "You have used Git very well, committing work as you go and using relevant Git messages. In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key.\n\n",),
-          "good":      ("Some granular commits and good messages, but not quite perfect",                  8,  feedback + "You have used Git very well, committing work as you go and using relevant Git messages. In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key.\n\n",),
-          "ok":        ("Some large commits or poor commit messages",                                      6,  feedback + "Overall, your use of Git is OK, but could have been better. For higher marks, you should have made sure to perform granular commits (i.e. only committing a change or two at a time) with accurate messages. In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key. You were asked to try and stick to good practice in your coursework. \n\n"),
-          "poor":      ("Many large Git commits covering many changes and/or poor use of commit messages", 4,  feedback + "Your use of Git is starting to get a bit messy. You should avoid commit lots of code in a single commit, and avoid simplistic messages that don't describe what happened in the commit.  In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key. You were asked to try and stick to good practice in your coursework.\n\n"),
-          "bad":       ("Basically non-existant use of Git",                                               2,  feedback + "Although you included your .git/ directory, it seems that you barely used Git, and certainly did not make the granular commit messages that you were expected to make.  In large projects with multiple collorators committing work simulatenously on different parts of a codebase, being able to fully track, understand (and potentially revert) commits is key. You were asked to try and stick to good practice in your coursework.\n\n")}
-
-      return stage_result(
-        updated_label = ".git/ directory opened in external application",
-        decision      = decision,
-        next_stage    = "opensrc")
-    else:
-      feedback += "You did not include your .git/ directory, thus you will receive 0 marks for this coursework. You were told multiple times in lectures and in the coursework specification that you must include the .git/ directory.\n\n"
-      return stage_result(
-        updated_label     = "No .git/ directory included - maximum marks set to 0",
-        student_feedback  = feedback,
-        student_max_marks = 0,
-        next_stage        = "opensrc")
 
 
   def opensrc(student_id, marks, feedback):
-    cmd = coursework.CMD_OPEN_CODE + [coursework.TEST_SRC_DIR + "/src"]
+    cmd = coursework.CMD_OPEN_CODE + [coursework.TEST_SRC_DIR]
     res = subprocess.run(cmd)
     return stage_result(
       updated_label     = "Source code opened in external application",
-      next_stage        = "compile")
-
-
-  def compile(student_id, marks, feedback):
-    cmd = ["g++",
-           "--std=c++14",
-           "-Wall",
-           "./src/bethyw.cpp",
-           "./src/input.cpp",
-           "./src/areas.cpp",
-           "./src/area.cpp",
-           "./src/measure.cpp",
-           "./main.cpp",
-           "-ggdb3",
-           "-o",
-           "./bin/bethyw"]
-    res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
-    stdout = res.stdout.decode("utf-8")
-
-    if res.returncode == 0 and stdout == "":
-      feedback =  "COMPILATION\n"
-      feedback += "Your code compiles without issuing any warnings from the compiler, which is great. You should never be submitting code with errors or warnings, even if the code is incomplete.\n\n"
-      return stage_result(
-        updated_label    = "Coursework compiled without warnings",
-        next_stage       = "unittest",
-        student_feedback = feedback,
-        student_marks    = 5)
-
-    elif res.returncode == 0 and stdout.find("warning") > -1:
-      feedback =  "COMPILATION\n"
-      feedback += "It looks like your code has some warnings from the compiler? You should aim to always produce code that has no warnings or errors, even if it is incomplete and does not implement all the functionality. This was a relatively easy area to pick up some marks (i.e. the code you were given compiles without warnings already).\n\n"
-      return stage_result(
-        updated_label    = "Coursework compiled with warnings",
-        next_stage       = "unittest",
-        student_feedback = feedback,
-        student_marks    = 0)
-
-    elif res.returncode != 0:
-      feedback =  "COMPILATION\n"
-      feedback += "It seems that your code does not compile. Did you modify files outside of the src/ directory in your solution or did you try and compile this with a different compiler? This was the core part of this assessment: producing code to prescribed documentation and tests, and its a shame that your code doesn't even compile to do that. As your code does not compile we cannot test it with the unit and automated output tests, and thus represents a significant chunk of the marks that you could have gained. If you were having issues of this nature, you should have raised these early on in the Canvas discussion for the coursework or in the labs.\n\n"
-
-      # details = ' '.join(cmd) + "\n\n"
-      details = res.stderr.decode("utf-8")
-
-      return stage_result(
-        updated_label    = "Coursework failed to compile with result {0}".format(res.returncode),
-        next_stage       = "quality",
-        student_feedback = feedback,
-        student_marks    = 0,
-        details          = details)
-
-
-  def __unittest_compile(unittest):
-    cmd = ["g++",
-           "-O0",
-           "--std=c++14",
-           "-Wall",
-           "./src/bethyw.cpp",
-           "./src/input.cpp",
-           "./src/areas.cpp",
-           "./src/area.cpp",
-           "./src/measure.cpp",
-           "./tests/" + unittest + ".cpp",
-            coursework.CATCH2_EXE,
-            "-o",
-            "./bin/bethyw-" + unittest]
-    res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
-
-    if res.returncode == 0:
-      return True
-    else:
-      return res.stderr.decode("utf-8") 
-
-
-  def unittest(student_id, marks, feedback):
-    test_files = [
-      "test1",
-      "test2",
-      "test3",
-      "test4",
-      "test5",
-      "test6",
-      "test7",
-      "test8",
-      "test9",
-      "test10",
-      "test11",
-      "test12",
-      "testus1",
-      "testus2",
-      "testus3",
-      "testus4",
-      "testus5",
-      "testus6",
-      "testus7",
-      "testus8",
-      "testus9",
-      "testus10"
-    ]
-
-    all_scenarios = {
-      "[args][datasets]"                    : (1, "unit", "seen",   "The --datasets program argument can be parsed as list of datasets to import can be generated correctly [test1.cpp in the provided code]"),
-      "[areas][args]"                       : (1, "unit", "seen",   "The --areas program argument can be parsed correctly, whether it is a single area's code, a comma-separated list of codes, contains 'all' as a value, or is missing; and a filter list can be generated correctly [test2.cpp in the provided code]"),
-      "[args][measures]"                    : (1, "unit", "seen",   "The --measures  program argument can be parsed correctly, whether it is a single measure's codename, a comma-separated list of codenames, contains 'all' as a value, or is missing; and a filter list can be generated correctly [test3.cpp in the provided code]"),
-      "[args][years]"                       : (1, "unit", "seen",   "The --years program argument can be parsed correctly, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, '0', '0-0', or invalid due to the presence of non-numerical values; and a filter tuple can be generated correctly [test4.cpp in the provided code]"),
-      "[args][extended][years]"             : (1, "unit", "unseen", "The --years program argument throws the correct exception is an incorrect length (e.g. two digits)"),
-      "[InputFile][existent]"               : (2, "unit", "seen",   "When given a valid path to a dataset file, an InputFile object is constructed and can return a reference to a stream [test5.cpp in the provided code]"),
-      "[InputFile][nonexistent]"            : (1, "unit", "seen",   "When given an invalid path to a dataset file, an InputFile object is constructed but will throw an exception when an attempt is made to retrieve a reference to a stream [test5.cpp in the provided code]"),
-      "[Measure][construct]"                : (2, "unit", "seen",   "A Measure object can be constructed in your coursework, where the constructor is given an std::string codename (which is converted to lowercase) and label, with a default size of 0 [test6.cpp in the provided code]"),
-      "[Measure][populate]"                 : (2, "unit", "seen",   "A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception [test7.cpp in the provided code]"),
-      "[Measure][extended][populate]"       : (1, "unit", "unseen", "A Measure object will replace an existing value when given a new value for an existing year"),
-      "[Area][construct]"                   : (1, "unit", "seen",   "An Area instance be constructed in your coursework with a local authority code [test8.cpp in the provided code]"),
-      "[Area][names]"                       : (2, "unit", "seen",   "An Area instance can contain multiple names in different languages with three-letter language codes, which are converted to lowercase; setting names with non-alphabetical language codes or retrieving names in non-set languages throws an exception [test8.cpp in the provided code]"),
-      "[Area][Measures]"                    : (2, "unit", "seen",   "An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename [test9.cpp in the provided code]"),
-      "[Areas<>][contain]"                  : (3, "unit", "seen",   "An Areas instance can be populated with Area instances, and cannot contain two Area instances with the same local authority code [test10.cpp in the provided code]"),
-      "[Areas<>][construct]"                : (1, "unit", "seen",   "An Areas instance can be constructed in your coursework [test10.cpp in the provided code]"),
-      "[Areas<>][authorityCodeCSV]"         : (4, "unit", "seen",   "areas.csv can be correctly parsed by your code in Areas<>::populateFromAuthorityCodeCSV() [test11.cpp in the provided code]"),
-      "[Areas<>][popu1009]"                 : (4, "unit", "seen"  , "popu1009.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON() [test12.cpp in the provided code]"),
-
-      "[Areas<>][contain][extended]"        : (1, "unit", "unseen", "An Areas instance will merge two Area instances' values when given the same key (local authority code and Measure codename), e.g. two areas will be properly merged (names and Measures) if they have the same local authority code"),
-      "[Area][Measures][extended]"          : (1, "unit", "unseen", "An Area instance will merge in values when given a Measure with the name matching the original"),
-
-      # TODO naming:
-      "[Areas<>][extended][popu1009]"       : (1, "unit", "unseen", "Measure codenames are imported and converted to lowercase when populated from a dataset stream"),
-      "[Areas<>][popu1009][statistics]"     : (2, "unit", "unseen", "The requested statistics (difference, differance as percentage, and mean) can be correctly calculated from the imported data"),
-      
-      "[Areas<>][econ0080]"                 : (2, "unit", "unseen", "econ0080.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON()"),
-      "[Areas<>][envi0201]"                 : (2, "unit", "unseen", "envi0201.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON()"),
-      "[Areas<>][tran0152]"                 : (4, "unit", "unseen", "tran0152.json can be correctly parsed by your code in Areas<>::populateFromWelshStatsJSON()"),
-
-      "[Areas<>][complete-popu1009-popden]" : (4, "unit", "unseen", "The extended CSV files can be correctly parsed by your code in Areas<>::populateFromAuthorityByYearCSV()")
-
-      # create unit tests for 8 marks for testing output
-    } # total = 47
-    
-    test_files_attempted = 0
-    test_files_compiled  = 0
-    test_files_failed    = 0
-    
-    num_total_scenarios  = 0
-    num_passed_scenarios = 0
-    num_failed_scenarios = 0
-    passed_scenarios = []
-    failed_scenarios = []
-    
-    num_total_tests  = 0
-    num_passed_tests = 0
-    num_failed_tests = 0
-
-    total_marks = 0
-    
-    # changes neede, test_files_failed => add feedback on tests scripts can't compile due to missing setions
-
-    df = pd.DataFrame(columns = ["student","filename", "tags", "result"])
-    df = df.astype({"student": int})
-    df = df.astype({"filename": str})
-    df = df.astype({"tags": str})
-    df = df.astype({"result": str})
-    
-    for test_file in iter(test_files):
-      test_files_attempted += 1
-      compile_result = coursework.__unittest_compile(test_file)
-
-      if compile_result is not True:
-        test_files_failed += 1  
-        with open(coursework.MARKS_DIR + "/" + student_id + '-catch2-' + test_file +'.txt', 'w') as file:
-          file.write("Could not compile:\n" + compile_result)
-      else:
-        test_files_compiled += 1
-        cmd = ["./bin/bethyw-" + test_file, "-r", "xml"]
-        res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
-
-        catch2xml  = res.stdout.decode("utf-8")
-        with open(coursework.MARKS_DIR + "/" + student_id + '-catch2-' + test_file +'.xml', 'w') as file:
-          file.write(catch2xml)
-
-        # Parse Catch2 unit tests outcomes
-        root = ET.XML(catch2xml)
-        
-        for result in root.iter("OverallResults"):
-          total_tests  = int(result.get("successes"))
-          total_tests += int(result.get("expectedFailures"))
-          total_tests += int(result.get("failures"))
-
-          passed_tests  = int(result.get("successes"))
-          passed_tests += int(result.get("expectedFailures"))
-          failed_tests  = int(result.get("failures"))
-          break
-
-        for group in root.iter("Group"):
-          for scenario in group.iter("TestCase"):
-            num_total_scenarios += 1
-
-            scenario_label = scenario.get("name").replace('Scenario: ', '')
-
-            for overall_result in scenario.iter("OverallResult"):
-              if overall_result.get("success") == "true":
-                result = "pass"
-
-                num_passed_scenarios += 1
-                passed_scenarios.append(scenario.get("tags"))
-              
-                marks = all_scenarios[scenario.get("tags")][0]
-                total_marks += marks
-              else:
-                result = "fail"
-
-                num_failed_scenarios += 1
-                failed_scenarios.append(scenario.get("tags"))
-              break
-            break
-          break
-
-        num_total_tests += total_tests
-        num_passed_tests += passed_tests
-        num_failed_tests += failed_tests
-        df = df.append({"student"         : student_id,
-                        "filename"        : scenario.get("filename"),
-                        "tags"            : scenario.get("tags"),
-                        "result"          : result,
-                        "scenario"        : scenario_label,
-                        "marks"           : marks,
-                        "tests_passed"    : passed_tests,
-                        "tests_failed"    : failed_tests},
-                        ignore_index=True)
-
-    df.to_csv(coursework.MARKS_DIR + "/" + student_id + '-catch2.csv', index=False)
-
-    # Report compilation 
-    feedback  = "FUNCTIONAL TESTING\nWe tried to run your code through {0} different tests scripts (including the 12 which had been shared with you in advance). Some of these tests examined individual functions, whereas some assessed your overall program performance.\n\n".format(test_files_attempted)
-    feedback += "With your coursework, {0}/{1} of the test files compiled successfuly. Compilation fails in situations where you have not implemented the functions in the expected/requested format, e.g. return type, function arguments, const etc. don't match what is expected in the test script, thus g++ fails to compile the script with your code. ".format(test_files_compiled, test_files_attempted)
-    if test_files_compiled == test_files_attempted:
-      feedback += "The fact that all the test files compiled is a great indication In addition to compiling with all the tests, "
-    elif test_files_compiled >= (test_files_attempted/4*3):
-      feedback += "The fact that most the test files compiled is a great indication. In addition to compiling with most the tests, "
-    elif test_files_compiled >= (test_files_attempted/2):
-      feedback += "A good number of the test files compiled, which is a great start. Of the tests which compiled, "
-    elif test_files_compiled == 0:
-      feedback += "Sadly, none of the test files failed to compile with your coursework. Given you were provided quite a few of the tests, this is somewhat dissapointing. The total list of scenarios was:\n"
-    elif test_files_compiled == 1:
-      feedback += "Your code compiled with just 1 test. Given you were provided quite a few of the tests, this is somewhat dissapointing. Of the tests which compiled, "
-    elif test_files_compiled < (test_files_attempted/4):
-      feedback += "Your code compiled with less than 25% of the tests. Given you were provided quite a few of the tests, this is somewhat dissapointing. Of the tests which compiled, "
-    else:
-      feedback += "Your code compiled with less than half of the tests. Given you were provided quite a few of the tests, this is somewhat dissapointing. Of the tests which compiled, "
-      
-    found_tags = []
-    if test_files_compiled > 0:
-      if test_files_compiled == test_files_attempted and num_passed_scenarios == num_total_scenarios:
-        feedback += "your code passed the following {0} scenarios, which was all of them!. The tests were:\n".format(num_passed_scenarios)
-      elif num_passed_scenarios == num_total_scenarios:
-        feedback += "your code passed the following {0} scenarios (which was all of those which compiled). The list of passing tests was:\n".format(num_passed_scenarios)
-      elif num_passed_scenarios >= (num_total_scenarios/4*3):
-        feedback += "your code passed {0} tests. The list of passing tests was:\n".format(num_passed_scenarios)
-      elif num_passed_scenarios == 0:
-        feedback += "sadly none of them passed.\n"
-      elif num_passed_scenarios == 1:
-        feedback += "your code passed {0}. The passing test was:\n".format(num_passed_scenarios)
-      elif num_passed_scenarios >= (num_total_scenarios/2):
-        feedback += "your code passed {0}. The list of passing tests was:\n".format(num_passed_scenarios)
-      elif num_passed_scenarios < (num_total_scenarios/4):
-        feedback += "{0} passed. The list of passing tests was:\n".format(num_passed_scenarios)
-      
-      for passed_scenario in iter(passed_scenarios):
-        found_tags.append(passed_scenario)
-        feedback += "  - " + all_scenarios[passed_scenario][3] + "\n"
-
-      if num_failed_scenarios == 1:
-        feedback += "\nThere was {0} scenario where your code did not pass:\n".format(num_failed_scenarios)
-      elif num_failed_scenarios > 0:
-        feedback += "\nThere were {0} scenarios where your code did not pass the tests:\n".format(num_failed_scenarios)
-        for failed_scenario in iter(failed_scenarios):
-          feedback += "  - " + all_scenarios[failed_scenario][3] + "\n"
-
-      if test_files_failed > 0:
-        feedback += "\nThe files your code did not compile with correctly contained the following scenarios:\n"
-
-    if test_files_failed > 0:
-      for tag, scenario in all_scenarios.items():
-        if tag not in found_tags: 
-          feedback += "  - " + scenario[3] + "\n"
-
-    feedback += "\n"
-
-    return stage_result(
-      updated_label    = "Testing completed ({0} compiled, {1} not compiled, {2} scenarios passed, {3} scenarios failed)".format(test_files_compiled, test_files_failed, num_passed_scenarios, num_failed_scenarios),
-      next_stage       = "memtest",
-      student_feedback = feedback, #TODO
-      student_marks    = total_marks) # TODO
+      next_stage        = "memtest")
 
 
   def memtest(student_id, marks, feedback):
+    return stage_result(
+        updated_label    = "Memory leak test skipped",
+        next_stage       = "function_ordering")
+
     cmd = ["valgrind",
            "--leak-check=yes",
            "--show-leak-kinds=all",
@@ -926,19 +881,19 @@ class coursework:
               "Area::size"],
 
             "areas.cpp": [
-              "Areas<>::Areas()",
-              "Areas<>::setArea",
-              "Areas<>::setArea",
-              "Areas<>::getArea",
-              "Areas<>::wildcardCountSet",
-              "Areas<>::isLocalAuthorityFiltered",
-              "Areas<>::size",
-              "Areas<>::populateFromAuthorityCodeCSV",
-              "Areas<>::populateFromWelshStatsJSON",
-              "Areas<>::populateFromAuthorityByYearCSV",
-              "Areas<>::populate",
-              "Areas<>::populate",
-              "Areas<>::toJSON"],
+              "Areas::Areas()",
+              "Areas::setArea",
+              "Areas::setArea",
+              "Areas::getArea",
+              "Areas::wildcardCountSet",
+              "Areas::isLocalAuthorityFiltered",
+              "Areas::size",
+              "Areas::populateFromAuthorityCodeCSV",
+              "Areas::populateFromWelshStatsJSON",
+              "Areas::populateFromAuthorityByYearCSV",
+              "Areas::populate",
+              "Areas::populate",
+              "Areas::toJSON"],
 
             "bethyw.cpp": [
               "BethYw::parseDatasetsArg",
@@ -969,7 +924,7 @@ class coursework:
 
     in_order = True
     for filename, functions in order.items():
-      with open(coursework.TEST_SRC_DIR + "/src/" + filename) as file:
+      with open(coursework.TEST_SRC_DIR + "/" + filename) as file:
         contents = re.sub(whitespace_pattern, '', file.read())
         prev_pos = -1
         for i, function in enumerate(functions):

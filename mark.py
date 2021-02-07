@@ -12,7 +12,7 @@ parser.add_argument(
   '-a', '--autograder',
   type=str, 
   default='_marks/autograder.csv',
-  help="Autograder export CSV")
+  help="Autograder grades export CSV")
 
 parser.add_argument(
   '-s', '--student',
@@ -21,5 +21,5 @@ parser.add_argument(
   help="Student submission directory")
 
 args = parser.parse_args()
-m = marker(args.student)
+m = marker(args.autograder, args.student)
 wrapper(m.run)

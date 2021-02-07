@@ -233,8 +233,8 @@ const InputFileSource DATASETS[NUM_DATASETS] = { POPDEN,
                                                  COMPLETE_POP,
                                                  COMPLETE_AREA};
 
-}; // namespace InputFiles
+} // namespace InputFiles
 
-}; // namespace BethYw
+} // namespace BethYw
 
 #endif // DATASETS_H_
