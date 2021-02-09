@@ -575,13 +575,13 @@ class coursework:
       if autograder_marks['Output tests - Output 3: bethyw -a doesnotexist -j'] == 0:
         temp_failed.append("Your code when given an invalid area code with the JSON output flag should output an empty JSON object ({}), as stated in the block comment of Areas::toJSON() in areas.cpp.")
       else:
-        temp_passed.append("Your code did output an empty JSON object when given a non-existant area.")
+        temp_passed.append("Your code did output an empty JSON object when given a non-existent area.")
 
       if autograder_marks['Output tests - Output 4: bethyw -d popden'] == 0:
         if autograder_marks['Output tests - Output 5: bethyw -d popden -j'] == 0:
-          temp_passed.append("Your code did not give the expected textual output for the popden dataset. We removed all whitepace and still your output did not match. You should check on Autograder to determine why (this was visible to you during the submission period too!). Perhaps you were imported data incorrectly as your JSON output was also invalid.")
+          temp_passed.append("Your code did not give the expected textual output for the popden dataset. We removed all whitespace and still your output did not match. You should check on Autograder to determine why (this was visible to you during the submission period too!). Perhaps you were imported data incorrectly as your JSON output was also invalid.")
         else:
-          temp_passed.append("Your code did not give the expected textual output for the popden dataset. We removed all whitepace and still your output did not match. You should check on Autograder to determine why (this was visible to you during the submission period too!). Despite this, your JSON output was correct suggesting the issue is in one of your operator<< functions.")
+          temp_passed.append("Your code did not give the expected textual output for the popden dataset. We removed all whitespace and still your output did not match. You should check on Autograder to determine why (this was visible to you during the submission period too!). Despite this, your JSON output was correct suggesting the issue is in one of your operator<< functions.")
       else:
         if autograder_marks['Output tests - Output 5: bethyw -d popden -j'] == 0:
           temp_failed.append("Your code had the correct textual output for the popden dataset, although curiously the JSON output does not seem to match what we expected?")
@@ -589,12 +589,12 @@ class coursework:
           temp_passed.append("Your code gave the correct textual/tables output and JSON output for the popden dataset.")
 
       if autograder_marks['Output tests - Output 6: bethyw -d biz -j'] == 0:
-        temp_failed.append("Your code did not give the expected JSON output for the biz dataset. Perphaps this was because this dataset included additional areas—you were guided in Areas::populateFromWelshStatsJSON() in areas.cpp that if you encounter additional areas in a dataset, you should import them still.")
+        temp_failed.append("Your code did not give the expected JSON output for the biz dataset. Perhaps this was because this dataset included additional areas—you were guided in Areas::populateFromWelshStatsJSON() in areas.cpp that if you encounter additional areas in a dataset, you should import them still.")
       else:
         temp_passed.append("Your code generated the expected JSON output for the biz dataset, creating the additional Area objects.")
 
       if autograder_marks['Output tests - Output 7: bethyw -d aqi -j'] == 0:
-        temp_failed.append("Your code did not give the expected JSON output for the aqi dataset. Perhaps this was because the dataset's data column errornously stores its values as strings? You were forewarned about this in the coursework assignment sheet.")
+        temp_failed.append("Your code did not give the expected JSON output for the aqi dataset. Perhaps this was because the dataset's data column erroneously stores its values as strings? You were forewarned about this in the coursework assignment sheet.")
       else:
         temp_passed.append("Your code generated the expected JSON output for the aqi dataset, handling the badly formatted StatsWales JSON files.")
 
@@ -625,7 +625,7 @@ class coursework:
       if autograder_marks['Extended output tests Total'] == 0:
         feedback += "We also ran your code against some additional output tests, although your program sadly scored 0 against these tests. "
       elif autograder_marks['Extended output tests Total'] < 3:
-        feedback += "We also ran your code against some additional output tests. Your code passed less than 50% of these tests, which is a little dissapointing although these tests were designed to exploit the edge cases in your data thus scoring high here was challenging. You should have attempted various different edge cases yourself and reasoned about the outputs of your program. "
+        feedback += "We also ran your code against some additional output tests. Your code passed less than 50% of these tests, which is a little disappointing although these tests were designed to exploit the edge cases in your data thus scoring high here was challenging. You should have attempted various different edge cases yourself and reasoned about the outputs of your program. "
       elif autograder_marks['Extended output tests Total'] < 6:
         feedback += "We also ran your code against some additional output tests. Your code passed most of these tests, which is a great outcome as these tests were designed to exploit the edge cases in your data thus scoring high here was challenging. "
       else:
@@ -635,9 +635,9 @@ class coursework:
       temp_passed = []
      
       if autograder_marks['Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j'] == 0:
-        temp_failed.append("When testing the JSON output of your code with a non-existant local authority code, and various measures, we were still expecting an empty JSON object (i.e., {})")
+        temp_failed.append("When testing the JSON output of your code with a  local authority code, and various measures, we were still expecting an empty JSON object (i.e., {})")
       else:
-        temp_passed.append("When testing the JSON output of your code with a non-existant local authority code, and various measures, we still received an empty JSON object (i.e., {}), as expected")
+        temp_passed.append("When testing the JSON output of your code with a  local authority code, and various measures, we still received an empty JSON object (i.e., {}), as expected")
 
       if autograder_marks['Extended output tests - Unseen output 2: bethyw -a swan -m RAIL'] == 0:
         temp_failed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code didn't seem to return the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
@@ -659,7 +659,7 @@ class coursework:
       else:
         temp_passed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code generated all the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
 
-      if autograder_marks['Extended output tests - Unseen outpout 6: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
+      if autograder_marks['Extended output tests - Unseen output 6: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
         temp_failed.append("In our final output test, with two areas by authority code and a given year, your code's output wasn't quite correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
       else:
         temp_passed.append("In our final output test, with two areas by authority code and a given year, your code's output was correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
@@ -676,9 +676,9 @@ class coursework:
         feedback += "It seems your code failed to pass any of the provided Catch2 tests. You were advised to make sure you passed these tests. "
         if autograder_marks['Extended Catch2 unit tests Total'] == 0:
           feedback = "Your also scored 0 on the additional Catch2 tests we performed, testing many more edge cases in your code. "          
-        feedback += "Although there are an infinte number of ways to implement this coursework, you were specifically asked to implement functions in a given way. In future, I recommend you read coursework specifications more closely to understand what is asked of you.  "
+        feedback += "Although there are an infinite number of ways to implement this coursework, you were specifically asked to implement functions in a given way. In future, I recommend you read coursework specifications more closely to understand what is asked of you.  "
       elif autograder_marks['Provided Catch2 unit tests Total'] < 10:
-        feedback += "You code passed less than 50% of the provided Catch2 tests. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well here. You had local copies of these tests and could have exmained their source closely to work out how to make sure your code complied with them. "
+        feedback += "You code passed less than 50% of the provided Catch2 tests. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well here. You had local copies of these tests and could have examined their source closely to work out how to make sure your code complied with them. "
       elif autograder_marks['Provided Catch2 unit tests Total'] < 20:
         feedback += "You code passed most of the provided Catch2 tests. These were designed to test the basic implementation of your program in response to the test files. These were easy points to score, so it is a shame you didn't quite get full marks here. "
       else:
@@ -741,11 +741,11 @@ class coursework:
       else:
         temp.append("Your implementation of the Measure class, including the constructor and storing a codename and label, is perfect")
         
-      if autograder_marks['Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception'] == 0:
+      if autograder_marks['Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existent value will throw an exception'] == 0:
         if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
-          temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existant years throws an error")
+          temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existent years throws an error")
         else:
-          temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existant years throws an error (although it did handle overwritng values at given years)")
+          temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existent years throws an error (although it did handle overwriting values at given years)")
       else:
         if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
           temp.append("Your implementation of the Measure class seems to work with the basic value storing functionality we expected, although didn't quite work with handling insertion of values at a year already inserted")
@@ -757,7 +757,7 @@ class coursework:
       if autograder_marks['Provided Catch2 unit tests - Test 8: An Area instance can be constructed with a local authority code and contain multiple names in different languages, identified by three-letter code'] == 0:
         temp.append("Your implementation of the Area class doesn't seem compliant with the basic functionality expected")
       else:
-        temp.append("Your implementation of the Area class, including the constructor and storing a local authority code and multiple names in differnet languages, is perfect")
+        temp.append("Your implementation of the Area class, including the constructor and storing a local authority code and multiple names in different languages, is perfect")
 
       if autograder_marks['Provided Catch2 unit tests - Test 9: An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename'] == 0:
         if autograder_marks['Extended Catch2 unit tests - Unseen test 4: An Area instance will merge in values when given a Measure with the name matching the original'] == 0:
@@ -832,7 +832,7 @@ class coursework:
 
 
       # Testing the statistics generation
-      if autograder_marks['Extended Catch2 unit tests - Unseen test 6: The requested statistics (difference, differance as percentage, and mean) can be correctly calculated from the imported data'] == 0:
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 6: The requested statistics (difference, difference as percentage, and mean) can be correctly calculated from the imported data'] == 0:
         temp_passed.append("Your code doesn't seem to calculate the difference, difference as percentage, and mean correctly")
       else:
         temp_passed.append("Your code seems to calculate the difference, difference as percentage, and mean correctly")
@@ -1176,7 +1176,7 @@ class coursework:
         },
 
         {
-         "except5":   (except5,                                                                                -4, "CODE EFFICIENCY\nFirstly, dissapointingly, despite being asked not to do so, you had a wildcard catch(...) in your code. "),
+         "except5":   (except5,                                                                                -4, "CODE EFFICIENCY\nFirstly, disappointingly, despite being asked not to do so, you had a wildcard catch(...) in your code. "),
          "except4":   ("Not really any exception handling in this coursework",                                 -3, "CODE EFFICIENCY\nWith respect to exceptions, you didn't seem to engage in the exception throwing/catching practice, as expected. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching.  "),
          "except3":   ("Places where they should have caught exceptions",                                      -2, "CODE EFFICIENCY\nWith respect to exceptions, there are places where you should have caught exceptions. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching. "),
          "except2":   ("Good use of exceptions throughout (not always caught with const ref)",                 -1, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very well in your coursework. However, you did not always catch your references as constant references as your told to do in lectures. "),
@@ -1184,10 +1184,10 @@ class coursework:
         },
 
         {
-         "const5":    ("No use of the const keyword with variables",                                           -4, "You don't seem to have used const in any significant way in your coursework. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const4":    ("Little use of the const keyword with variables",                                       -3, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const3":    ("Could have used more instances of the const keyword with variables",                   -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const5":    ("No use of the const keyword with variables",                                           -4, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const4":    ("Little use of the const keyword with variables",                                       -3, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const3":    ("Could have used more instances of the const keyword with variables",                   -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
          "const1":    ("Perfect use of the const keyword for variables",                                        0, "In terms of using const for non-modifiable variables and references, you've used this very well. "),
         },
 
@@ -1199,9 +1199,9 @@ class coursework:
         },
 
         {
-         "const3":    ("Little use of the const keyword in fuction declarations",                              -1, "Quite a few of your function declarations have issues. You should always think about the use of const, noexcept, and reference/value types. "),
+         "const3":    ("Little use of the const keyword in function declarations",                             -1, "Quite a few of your function declarations have issues. You should always think about the use of const, noexcept, and reference/value types. "),
          "const2":    ("Could have used more instances of the const keyword",                                 -.5, "Your function declarations are close to perfect, but you should always think about the use of const, noexcept, and reference/value types. "),
-         "const1":    ("Function declarations are perfect",                                                     0, "Your function declarations are perfect. Continue to always program with the use of const, noexcept, and reference/value types is needed. ")
+         "const1":    ("Function declarations are perfect with const",                                          0, "Your function declarations are perfect. Continue to always program with the use of const, noexcept, and reference/value types is needed. ")
         },
 
         {
