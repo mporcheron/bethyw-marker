@@ -43,13 +43,15 @@ class marker:
     self.status = "Initialise marker system"
 
     self.progress = collections.OrderedDict()
-    self.progress["setup"]            = stage("Copy student's submission into temporary marking directory", coursework.setup)
-    self.progress["autograder"]       = stage("Parse autograder output",                                    coursework.autograder)
-    self.progress["readme"]           = stage("Read the student's README",                                  coursework.readme)
-    self.progress["opensrc"]          = stage("Begin reading through the student's code",                   coursework.opensrc)
-    self.progress["memtest"]          = stage("Run the coursework with Valgrind",                           coursework.memtest)
-    self.progress["function_ordering"]= stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
-    self.progress["quality"]          = stage("Evaluate the coding quality",                                coursework.quality)
+    self.progress["setup"]                   = stage("Copy student's submission into temporary marking directory", coursework.setup)
+    self.progress["autograder"]              = stage("Parse autograder output",                                    coursework.autograder)
+    self.progress["readme"]                  = stage("Read the student's README",                                  coursework.readme)
+    self.progress["opensrc"]                 = stage("Begin reading through the student's code",                   coursework.opensrc)
+    self.progress["negative_marking_switch"] = stage("Swap to negative marking from here on in",                   coursework.negative_marking_switch)
+    self.progress["function_ordering"]       = stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
+    self.progress["aggressive_warnings"]     = stage("Use GCC to test code quality with some aggressive warnings", coursework.aggressive_warnings)
+    self.progress["memtest"]                 = stage("Run the coursework with Valgrind",                           coursework.memtest)
+    self.progress["quality"]                 = stage("Evaluate the coding quality",                                coursework.quality)
     #self.progress["feedback"]         = stage("Modify the feedback",                                        coursework.feedback)
 
     self.current_stage = "setup"
@@ -473,6 +475,7 @@ class stage_result:
 
 
 class coursework:
+  GPP_COMMAND   = 'g++-10'
   CATCH2_EXE    = os.getcwd() + "/_bin/catch.o"
   MARKS_DIR     = os.getcwd() + "/_marks"
   ORIG_SRC_DIR  = os.getcwd() + "/_origsrc"
@@ -549,12 +552,12 @@ class coursework:
       # Output tests
       if autograder_marks['Output tests Total'] == 0:
         feedback += "It seems your code failed to pass any of the output tests. For this coursework you were given a specification and expected to program towards it. These tests were all available on the CS Autograder. The system was configured to provide the output of your program and the expected output to help you with your development. You were advised to make sure you passed these tests. "
-      elif autograder_marks['Output tests Total'] < 5:
-        feedback += "You code passed less than 50% of the provided output tests on the CS Autograder. The system was configured to provide the output of your program and the expected output to help you with your developed. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well in this section. "
-      elif autograder_marks['Output tests Total'] < 10:
-        feedback += "You code passed most of the provided output tests on CS Autograder. These were designed to test the basic output of your program in response to the commands, and the CS Autograder was configured to provide you with the expected output as well as the output from your program. These were easy points to score, so it is a shame you didn't quite get full marks here. "
+      elif autograder_marks['Output tests Total'] - autograder_marks['Output tests - Compilation completed without warnings'] < 5:
+        feedback += "You code passed less than 50% of the provided output tests. The system was configured to provide the output of your program and the expected output to help you with your developed. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well in this section. "
+      elif autograder_marks['Output tests Total'] - autograder_marks['Output tests - Compilation completed without warnings'] < 10:
+        feedback += "You code passed most of the provided output tests. These were designed to test the basic output of your program in response to the commands, and the CS Autograder was configured to provide you with the expected output as well as the output from your program. These were easy points to score, so it is a shame you didn't quite get full marks here. "
       else:
-        feedback += "You passed all the provided output tests, scoring all 10 mars possible. These were designed to test the basic output of your program in response to the commands. "
+        feedback += "You passed all the provided output tests, scoring all 10 marks possible. These were designed to test the basic output of your program in response to the commands. "
 
       temp_failed = []
       temp_passed = []
@@ -616,192 +619,240 @@ class coursework:
       for temp in iter(temp_passed):
         feedback += '  - ' + temp + '\n'
       feedback += '\n'
-      #
-      # if autograder_marks['Extended output tests Total'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests Total Possible'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests - Unseen output 2: bethyw -a swan -m RAIL'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests - Unseen output 3: bethyw -d popden -a swan -m RAIL'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests - Unseen output 4: bethyw -d popden -a Abertawe,Swansea '] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended output tests - Unseen outpout 6: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      #
-      #
-      #
-      #
-      # if autograder_marks['Provided Catch2 unit tests Total'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests Total Possible'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 1: The --datasets program argument can be parsed as a list of datasets to import can be generated correctly'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 2: The --areas program argument can be parsed correctly, whether it is a single area's code, a comma-separated list of codes, contains 'all' as a value, or is missing; and a filter list can be generated correctly'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 3: The --measures  program argument can be parsed correctly, whether it is a single measure's codename, a comma-separated list of codenames, contains 'all' as a value, or is missing'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 4: The --years program argument can be parsed correctly, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, '0', '0-0', or invalid due to the presence of non-numerical values'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 5: When given a path to a dataset file, an InputFile object is constructed and can return a reference to a stream if it is a valid path'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 6: A Measure object can be constructed in your coursework, where the constructor is given an std::string codename (which is converted to lowercase) and label, with a default size of 0'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 8: An Area instance can be constructed with a local authority code and contain multiple names in different languages, identified by three-letter code'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 9: An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 10: An Areas instance can be constructed populated with Area instances, and cannot contain two Area instances with the same local authority code'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 11: The dataset areas.csv can be correctly parsed by your code in Areas::populateFromAuthorityCodeCSV()'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Provided Catch2 unit tests - Test 12: The dataset popu1009.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests Total'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests Total Possible'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 1: The --years program argument throws the correct exception is an incorrect length (e.g. two digits)'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 3: An Areas instance will merge two Area instances and the names of the second Area instances will overwrite the first'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 4: An Area instance will merge in values when given a Measure with the name matching the original'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 5: Measure codenames are imported and converted to lowercase when populated from a dataset stream'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 6: The requested statistics (difference, differance as percentage, and mean) can be correctly calculated from the imported data'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 7: The dataset econ0080.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 8: The dataset envi0201.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 9: The dataset tran0152.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
-      #
-      # if autograder_marks['Extended Catch2 unit tests - Unseen test 10: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()'] == 0:
-      #   temp_failed.append("explanation")
-      # else:
-      #   temp_passed.append("explanation")
       
       
+      # Extended output tests
+      if autograder_marks['Extended output tests Total'] == 0:
+        feedback += "We also ran your code against some additional output tests, although your program sadly scored 0 against these tests. "
+      elif autograder_marks['Extended output tests Total'] < 3:
+        feedback += "We also ran your code against some additional output tests. Your code passed less than 50% of these tests, which is a little dissapointing although these tests were designed to exploit the edge cases in your data thus scoring high here was challenging. You should have attempted various different edge cases yourself and reasoned about the outputs of your program. "
+      elif autograder_marks['Extended output tests Total'] < 6:
+        feedback += "We also ran your code against some additional output tests. Your code passed most of these tests, which is a great outcome as these tests were designed to exploit the edge cases in your data thus scoring high here was challenging. "
+      else:
+        feedback += "We also ran your code against some additional output tests and your code passed all of these, which is a fantastic outcome, and showed that you did a very thorough job following the coursework specification. "
+
+      temp_failed = []
+      temp_passed = []
+     
+      if autograder_marks['Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j'] == 0:
+        temp_failed.append("When testing the JSON output of your code with a non-existant local authority code, and various measures, we were still expecting an empty JSON object (i.e., {})")
+      else:
+        temp_passed.append("When testing the JSON output of your code with a non-existant local authority code, and various measures, we still received an empty JSON object (i.e., {}), as expected")
+
+      if autograder_marks['Extended output tests - Unseen output 2: bethyw -a swan -m RAIL'] == 0:
+        temp_failed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code didn't seem to return the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
+      else:
+        temp_passed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code still returned the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
+
+      if autograder_marks['Extended output tests - Unseen output 3: bethyw -d popden -a swan -m RAIL'] == 0:
+        temp_failed.append("When using the same command as above but with a dataset filter that did not include the selected measure, and your code's output differed from what we expected (we tested this with bethyw -d popden -a swan -m RAIL)")
+      else:
+        temp_passed.append("When using the same command as above, but with a dataset filter that did not include the selected measure, and your code worked perfectly (we tested this with bethyw -d popden -a swan -m RAIL)")
+
+      if autograder_marks['Extended output tests - Unseen output 4: bethyw -d popden -a Abertawe,Swansea '] == 0:
+        temp_failed.append("That when we used the English and Welsh names for the area filter, your code didn't seem to return the expected output (we tested this with bethyw -d popden -a Abertawe,Swansea)")
+      else:
+        temp_passed.append("That when we used the English and Welsh names for the area filter your code worked perfectly (we tested this with bethyw -d popden -a Abertawe,Swansea)")
+
+      if autograder_marks['Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j'] == 0:
+        temp_failed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code didn't seem to give the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
+      else:
+        temp_passed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code generated all the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
+
+      if autograder_marks['Extended output tests - Unseen outpout 6: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
+        temp_failed.append("In our final output test, with two areas by authority code and a given year, your code's output wasn't quite correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
+      else:
+        temp_passed.append("In our final output test, with two areas by authority code and a given year, your code's output was correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
+
+      feedback += "We found that:\n"
+      for temp in iter(temp_passed):
+        feedback += '  - ' + temp + '\n'          
+      for temp in iter(temp_passed):
+        feedback += '  - ' + temp + '\n'
+      feedback += '\n'
+
+      # Catch2 tests
+      if autograder_marks['Provided Catch2 unit tests Total'] == 0:
+        feedback += "It seems your code failed to pass any of the provided Catch2 tests. You were advised to make sure you passed these tests. "
+        if autograder_marks['Extended Catch2 unit tests Total'] == 0:
+          feedback = "Your also scored 0 on the additional Catch2 tests we performed, testing many more edge cases in your code. "          
+        feedback += "Although there are an infinte number of ways to implement this coursework, you were specifically asked to implement functions in a given way. In future, I recommend you read coursework specifications more closely to understand what is asked of you.  "
+      elif autograder_marks['Provided Catch2 unit tests Total'] < 10:
+        feedback += "You code passed less than 50% of the provided Catch2 tests. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well here. You had local copies of these tests and could have exmained their source closely to work out how to make sure your code complied with them. "
+      elif autograder_marks['Provided Catch2 unit tests Total'] < 20:
+        feedback += "You code passed most of the provided Catch2 tests. These were designed to test the basic implementation of your program in response to the test files. These were easy points to score, so it is a shame you didn't quite get full marks here. "
+      else:
+        feedback += "You passed all the provided Catch2 tests, scoring all 20 marks possible. "
+
+      if autograder_marks['Extended Catch2 unit tests Total'] < 11:
+        feedback += "With the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, your code scored less than 50% of the marks. These tests were designed to be challenging, so this is still a good result. "
+      elif autograder_marks['Extended Catch2 unit tests Total'] < 22:
+        feedback += "With the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, your code passed most of the tests, which given these tests were designed to be challenging, is a great result. "
+      elif autograder_marks['Extended Catch2 unit tests Total'] == 22:
+        feedback += "Your code passed ALL of the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, which is an excellent outcome and demonstrates some fantastic programming skills. "
+
+      temp = []
+
+      # Testing the --dataset instance
+      if autograder_marks['Provided Catch2 unit tests - Test 1: The --datasets program argument can be parsed as a list of datasets to import'] == 0:
+        temp.append("Your code did not seem to correctly parse the --datasets program argument in the BethYw::parseDatasetsArg() function")
+      else:
+        temp.append("Your code correctly parse the --datasets program argument in the BethYw::parseDatasetsArg() function")
+
+
+      # Testing the --areas instance
+      if autograder_marks['Provided Catch2 unit tests - Test 2: The --areas program argument can be parsed correctly, whether it is a single area\'s code, a comma-separated list of codes, contains \'all\' as a value, or is missing; and a filter list generated'] == 0:
+        temp.append("Your code did not seem to correctly --areas program argument in the BethYw::parseAreasArg() function")
+      else:
+        temp.append("Your code correctly parse the --areas program argument in the BethYw::parseAreasArg() function, whether it is a single area\'s code, a comma-separated list of codes, contains \'all\' as a value, or is missing; and a filter list generated")
+
+
+      # Testing the --measures instance
+      if autograder_marks["Provided Catch2 unit tests - Test 3: The --measures program argument can be parsed correctly, whether it is a single measure's codename, a comma-separated list of codenames, contains 'all' as a value, or is missing"] == 0:
+        temp.append("Your code did not seem to correctly parse the --measures program argument in the BethYw::parseMeasuresArg() function")
+      else:
+        temp.append("Your code correctly parse the --measures program argument in the BethYw::parseMeasuresArg() function, whether it is a single measure\'s codename, a comma-separated list of codenames, contains \'all\' as a value, or is missing")
+
+
+      # Testing the --years argument
+      if autograder_marks['Provided Catch2 unit tests - Test 4: The --years program argument can be parsed correctly, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, \'0\', \'0-0\', or invalid due to the presence of non-numerical values'] == 0:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 1: The --years program argument throws the correct exception is an incorrect length (e.g. two digits)'] == 0:
+          temp.append("Your code did not seem to correctly parse the --years program argument in the BethYw::parseYearsArg() function")
+        else:
+          temp.append("Your code did not seem to correctly parse the --years program argument in the BethYw::parseYearsArg() function, although it did throw an exception when the years argument was a number of incorrect length")
+      else:
+        temp.append("Your code correctly parse the --years program argument in the BethYw::parseYearsArg() function, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, \'0\', \'0-0\', or invalid due to the presence of non-numerical values")
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 1: The --years program argument throws the correct exception is an incorrect length (e.g. two digits)'] == 0:
+          temp.append("That said, your code didn't seem to throw the correct exception when the years argument was a number of incorrect length")
+        else:
+          temp.append("Your code even threw an exception when the years argument was a number of incorrect length")
+
+
+      # Testing the InputFile instance
+      if autograder_marks['Provided Catch2 unit tests - Test 5: When given a path to a dataset file, an InputFile object is constructed and can return a reference to a stream if it is a valid path'] == 0:
+        temp.append("Your InputSource and InputFile classes don't seem to work fully—either not returning a stream when given a valid filepath or not throwing an exception when given an invalid filepath")
+      else:
+        temp.append("Your InputSource and InputFile classes work as documented")
+
+
+      # Testing the Measure instance
+      if autograder_marks['Provided Catch2 unit tests - Test 6: A Measure object can be constructed in your coursework, where the constructor is given an std::string codename (which is converted to lowercase) and label, with a default size of 0'] == 0:
+        temp.append("Your implementation of the Measure class doesn't seem to be compliant with the test given to you")
+      else:
+        temp.append("Your implementation of the Measure class, including the constructor and storing a codename and label, is perfect")
+        
+      if autograder_marks['Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existant value will throw an exception'] == 0:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
+          temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existant years throws an error")
+        else:
+          temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existant years throws an error (although it did handle overwritng values at given years)")
+      else:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
+          temp.append("Your implementation of the Measure class seems to work with the basic value storing functionality we expected, although didn't quite work with handling insertion of values at a year already inserted")
+        else:
+          temp.append("Your implementation of the Measure class seems to work with the basic value storing functionality we expected, including fully overwriting values when given two values with the same year")
+
+
+      # Testing the Area instance
+      if autograder_marks['Provided Catch2 unit tests - Test 8: An Area instance can be constructed with a local authority code and contain multiple names in different languages, identified by three-letter code'] == 0:
+        temp.append("Your implementation of the Area class doesn't seem compliant with the basic functionality expected")
+      else:
+        temp.append("Your implementation of the Area class, including the constructor and storing a local authority code and multiple names in differnet languages, is perfect")
+
+      if autograder_marks['Provided Catch2 unit tests - Test 9: An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename'] == 0:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 4: An Area instance will merge in values when given a Measure with the name matching the original'] == 0:
+          temp.append("Your implementation of the Area class doesn't seem to work with being populated with multiple Measure objects, and doesn't seem to be avoid duplicate codenames")
+        else:
+          temp.append("Your implementation of the Area class doesn't seem to work with being populated with multiple Measure objects, and doesn't seem to be avoid duplicate codenames, although did seem to handle merging of objects at least")
+      else:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 4: An Area instance will merge in values when given a Measure with the name matching the original'] == 0:
+          temp.append("Your implementation of the Area class seems to work with the basic Measure storing functionality we expected, although it doesn't quite fully merge/overwrite Measure objects correctly")
+        else:
+          temp.append("Your implementation of the Area class seems to work with the basic Measure storing functionality we expected, including fully merging/overwriting Measure objects correctly")
+
+
+      # Testing the Areas instance
+      if autograder_marks['Provided Catch2 unit tests - Test 10: An Areas instance can be constructed populated with Area instances, and cannot contain two Area instances with the same local authority code'] == 0:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 3: An Areas instance will merge two Area instances and the names of the second Area instances will overwrite the first'] == 0:
+          temp.append("Your implementation of the Areas class doesn't seem to work properly with Area instances")
+        else:
+          temp.append("Your implementation of the Areas class doesn't seem to work properly with Area instances, although does handle merging of Area instances at the same local authority code")
+      else:
+        if autograder_marks['Extended Catch2 unit tests - Unseen test 3: An Areas instance will merge two Area instances and the names of the second Area instances will overwrite the first'] == 0:
+          temp.append("Your implementation of the Areas class works with storing Area instances, including avoiding multiple Area instances with the same local authority code, although doesn't fully merge two Area instances when a second is inserted at the same local authority code")
+        else:
+          temp.append("Your implementation of the Areas class works with storing Area instances, including avoiding multiple Area instances with the same local authority code and merging Area instances at the same local authority code")
+
+
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 5: Measure codenames are imported and converted to lowercase when populated from a dataset stream'] == 0:
+        temp.append("Your code doesn't seem to convert measure codenames to lowercase")
+      else:
+        temp.append("Your code converts measure codenames to lowercase")
+
+      # Testing the areas.csv dataset
+      if autograder_marks['Provided Catch2 unit tests - Test 11: The dataset areas.csv can be correctly parsed by your code in Areas::populateFromAuthorityCodeCSV()'] == 0:
+        temp.append("Your code doesn't seem to parse the areas.csv dataset correctly")
+      else:
+        temp.append("Your code parses the areas.csv dataset perfectly")
+
+
+      # Testing the popu1009.csv dataset
+      if autograder_marks['Provided Catch2 unit tests - Test 12: The dataset popu1009.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+        temp.append("The popu1009.json dataset does not seem to be parsed correctly in your code")
+      else:
+        temp.append("The popu1009.json dataset is correctly parsed in your code")
+
+
+      # Testing the econ0080.json dataset
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 7: The dataset econ0080.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+        temp.append("The econ0080.json dataset does not seem to be parsed correctly in your code")
+      else:
+        temp.append("The econ0080.json dataset is correctly parsed in your code")
+
+
+      # Testing the envi0201.json dataset
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 8: The dataset envi0201.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+        temp.append("The econ0080.json dataset does not seem to be parsed correctly in your code")
+      else:
+        temp.append("The econ0080.json dataset is correctly parsed in your code")
+
+
+      # Testing the tran0152.json dataset
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 9: The dataset tran0152.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()'] == 0:
+        temp.append("The tran0152.json dataset does not seem to be parsed correctly in your code")
+      else:
+        temp.append("The tran0152.json dataset is correctly parsed in your code")
+
+
+      # Testing the complete-popu1009-popden.csv dataset
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 10: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()'] == 0:
+        temp.append("The complete-popu1009-popden.json dataset does not seem to be parsed correctly in your code")
+      else:
+        temp.append("The complete-popu1009-popden.json dataset is correctly parsed in your code")
+
+
+      # Testing the statistics generation
+      if autograder_marks['Extended Catch2 unit tests - Unseen test 6: The requested statistics (difference, differance as percentage, and mean) can be correctly calculated from the imported data'] == 0:
+        temp_passed.append("Your code doesn't seem to calculate the difference, difference as percentage, and mean correctly")
+      else:
+        temp_passed.append("Your code seems to calculate the difference, difference as percentage, and mean correctly")
+
+
+      feedback += "We found that:\n"
+      for temp in iter(temp):
+        feedback += '  - ' + temp + '\n'   
+      feedback += '\n'
+      
+
       return stage_result(
         updated_label    = "Autograder marks imported and feedback generated",
         student_feedback = feedback,
         student_marks    = autograder_marks['Total Points'],
         next_stage       = "readme")
-    except KeyError:
+    except KeyError as e:
       return stage_result(
-        updated_label = "Could not find student's marks in autograder export",
+        updated_label = "Error with autograder import:" + str(e),
         next_stage    = None)
-      
 
 
   def readme(student_id, marks, feedback):
@@ -825,14 +876,40 @@ class coursework:
     res = subprocess.run(cmd)
     return stage_result(
       updated_label     = "Source code opened in external application",
-      next_stage        = "memtest")
+      next_stage        = "negative_marking_switch")
 
 
-  def memtest(student_id, marks, feedback):
-    return stage_result(
-        updated_label    = "Memory leak test skipped",
-        next_stage       = "function_ordering")
+  def negative_marking_switch(student_id, marks, feedback):
+      return stage_result(
+          updated_label    = "Added 40 marks, remaining parts are negative marked...",
+          next_stage       = "memtest",
+          student_marks    = 40)
 
+
+
+  def memtest(student_id, marks, feedback): # max -4 marks
+    cmd = [coursework.GPP_COMMAND,
+           "--std=c++14",
+           "bethyw.cpp",
+           "input.cpp",
+           "areas.cpp",
+           "area.cpp",
+           "measure.cpp",
+           "main.cpp",
+           "-ggdb3",
+           "-o",
+           "./bin/bethyw"]
+    res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
+
+    if res.returncode != 0:
+      # details = ' '.join(cmd) + "\n\n"
+      details = res.stderr.decode("utf-8")
+
+      return stage_result(
+        updated_label = "Could not compile the coursework with GCC {0}".format(res.returncode),
+        next_stage    = None,
+        details       = details)
+    
     cmd = ["valgrind",
            "--leak-check=yes",
            "--show-leak-kinds=all",
@@ -861,16 +938,18 @@ class coursework:
           updated_label    = "Coursework passed memory leak test",
           next_stage       = "function_ordering",
           student_feedback = feedback,
-          student_marks    = 5)
+          student_marks    = 0)
     else:
       feedback += "It seems that your code contains a one or more memory leaks. You should make sure you free any memory you allocate on the heap. In reality, you should have used good RAII principles taught in lectures and not needed to handle memory management at all.\n\n"
       return stage_result(
           updated_label    = "Coursework was found to contain memory leaks",
           next_stage       = "function_ordering",
+          student_marks    = -2,
           student_feedback = feedback)
 
 
-  def function_ordering(student_id, marks, feedback):
+
+  def function_ordering(student_id, marks, feedback): # max -.5 marks
     order = {"area.cpp": [
               "Area::Area",
               "Area::getLocalAuthorityCode",
@@ -940,56 +1019,209 @@ class coursework:
       return stage_result(
         updated_label    = "The student has kept the functions in order",
         student_feedback = "CODE STYLE\nThank you for keeping the functions in the same order as in the provided code. This makes it easier to mark your work. ",
-        student_marks    = 1,
-        next_stage       = "quality")
+        student_marks    = 0,
+        next_stage       = "aggressive_warnings")
     else:
       return stage_result(
         updated_label    = "The student didn't keep the functions in order",
         student_feedback = "CODE STYLE\nYou were asked to keep the functions in the same order as they were given to you in the block comments. Not doing this makes it significantly harder to mark your work. ",
-        student_marks    = 0,
+        student_marks    = -.5,
+        next_stage       = "aggressive_warnings")
+
+
+
+  def aggressive_warnings(student_id, marks, feedback): # max -5.5 marks
+    cmd = [coursework.GPP_COMMAND,
+           "--std=c++14",
+           "-pedantic",
+           "-Wall",
+           "-Wextra",
+           "-Wcast-qual",
+           "-Wctor-dtor-privacy",
+           "-Wdisabled-optimization",
+           "-Wformat=2",
+           "-Winit-self",
+           "-Wuninitialized",
+           "-Wlogical-op",
+           "-Wmissing-declarations",
+           "-Wmissing-include-dirs",
+           "-Wnoexcept",
+           "-Woverloaded-virtual",
+           "-Wredundant-decls",
+           "-Wshadow",
+           "-Wsign-promo",
+           "-Wstrict-null-sentinel",
+           "-Wstrict-overflow=5",
+           "-Wswitch-default",
+           "-Wundef",
+           "-Werror",
+           "-Wno-unused",
+           "bethyw.cpp",
+           "input.cpp",
+           "areas.cpp",
+           "area.cpp",
+           "measure.cpp",
+           "main.cpp",
+           "-o",
+           "./bin/bethyw"]
+    res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
+    stdout = res.stdout.decode("utf-8")
+    stderr = res.stderr.decode("utf-8")
+
+    if res.returncode == 0 and stderr == "":
+      return stage_result(
+        updated_label    = "Coursework compiled without any warnings, despite all the extra flags",
         next_stage       = "quality")
 
+    else:
+      quality_errors = {
+        # string in gcc output : (marks to deduce, num regex matches, regex match, feedback, friends)
+        'casts away qualifiers':                  (1, 2, r'([a-zA-Z.]*):([0-9]+)',            "It seems your code casts away some qualifiers (e.g. const) from variables, which is typically an indication of trouble in your code and bad practice. You should always work to honour qualifiers such as const rather than overriding them. The first occurence of this we spotted was in __ on line __."),
 
-  def quality(student_id, marks, feedback):
+        'used uninitialized':                     (1, 2, r'([a-zA-Z.]*):([0-9]+)',            "You have used a variable that is uninitalised in your code, without initialising it. We discussed this in lectures and labs. This is incredibly easy to do as this is a case of 'undefined behaviour' (i.e., some compilers on some platforms will automatically initalise variables for you and some won't). However, we treated this as bad practice as you were advised in lectures to avoid doing this. The first occurence we spotted was in __ on line __."),
+
+        'of equal expressions':                   (1, 2, r'([a-zA-Z.]*):([0-9]+)',            "There is some suspect logic in __ on line __—you seem testing the same thing twice in your logical test?"),
+
+        'no previous declaration for':            (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "We asked you to always declare functions in header files before implementing them, but it seems you didn't always manage this, as in __ with the free function __.", ['no declaration matches']),
+        'no declaration matches':                 (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "It seems that the although you provided an implementation in __ for the function __, there isn't a matching declaration of it?. We asked to you make sure you always included declarations for your functions in the appropriate header files.", ['no previous declaration for']),
+
+        'shadows a parameter':                    (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope or as a parameter (as in this case). The first place we spotted this was in __ on line __ with the __.", ['shadows a local']),
+        'shadows a local':                        (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place we spotted this was in __ on line __ with the __.", ['shadows a parameter']),
+
+        'switch missing default case':            (.5, 2, r'([a-zA-Z.]*):([0-9]+)',            "You seem to have a switch statement in __ on __ that doesn't have a default value. This may be OK in this case, but typically one would be expected (e.g. to catch unexpected values).")
+      }
+      feedback_list = []
+      found_quality_errors = []
+      marks_subtraction = 0
+      
+      for line in stderr.split("\n"):
+        for gcc_str, parse in quality_errors.items():
+          if gcc_str not in found_quality_errors:
+            if gcc_str in line:
+              stderr = ("!! Found '%s'\n" % gcc_str) + stderr
+              re_position_in_code = re.compile(parse[2])
+              match = re.search(re_position_in_code, line)
+              if match is not None:
+                temp_feedback = parse[3]
+                for i in range(0, parse[1]):
+                  temp_feedback = temp_feedback.replace("__", match.group(i+1), 1)
+                feedback_list.append(temp_feedback)
+                marks_subtraction -= parse[0]
+                
+                found_quality_errors.append(gcc_str)
+                try:
+                  for friend_match in parse[4]:
+                    found_quality_errors.append(friend_match)
+                except:
+                  pass
+              else:
+                pass
+          
+      marks_subtraction = max(5, marks_subtraction)
+
+      if len(feedback_list) == 0:  
+        return stage_result(
+          updated_label    = "Deducted %d marks for warnings" % -(marks_subtraction),
+          details          = "No automatically detected issues thus no marks could be automatically deducted. Please read the output below and prepare to modify the students feedback to include the issues highlighted!\n\n" + stderr,
+          next_stage       = "quality")
+        
+      elif len(feedback_list) == 1:
+        lower = lambda s: s[:1].lower() + s[1:] if s else ''
+        feedback = "While reviewing your code, we noticed the following that " + lower(feedback_list[0]) + "\n"
+
+      elif len(feedback_list) > 1:
+        feedback = "\n\nWhile reviewing your code, we noticed the following that:\n"
+        for i, feedback_item in enumerate(feedback_list):
+          feedback += '  ' + str(i+1) + ". " + feedback_item + "\n"
+      
+      return stage_result(
+        updated_label    = "Deducted %f marks for warnings" % marks_subtraction,
+        details          = stderr,
+        next_stage       = "quality",
+        student_feedback = feedback + "\n",
+        student_marks    = -marks_subtraction)
+
+          
+  def quality(student_id, marks, feedback): # max -32
+    except5 = "Use of wildcard catch (...)"
+    files = ["bethyw.cpp",
+             "input.cpp",
+             "areas.cpp",
+             "area.cpp",
+             "measure.cpp"]
+
+    for file in files:
+      with open(coursework.TEST_SRC_DIR + "/" + file, 'r') as f:
+        all_lines = ''.join(f.readlines())
+        wildcard_catch = re.compile(r'catch\(\s*...\s*\)')
+        match = re.search(wildcard_catch, all_lines)
+        if match is not None:
+          except5="!!! CHECK %s FOR WILDCARD CATCH !!!"
+          break
+           
     multidecision = [
-        {"comments1": ("Good commenting in relevant places",                                                  3, "You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. "),
-         "comments2": ("Could have included additional comments to explain complex chunks of code",           2, "You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. "),
-         "comments3": ("Excessive commenting given the complexity of the code",                               2, "You have used a few too many comments in your coursework solution. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. "),
-         "comments4": ("Alright commenting (i.e. have used them if needed)",                                  1, "Your use of commenting is OK. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. In future, focus on providing explanatory comments rather than comments that merely repeat what can be gleamed from code. "),
-         "comments5": ("No commenting",                                                                       0, "You haven't really used any comments of note in your work. In future, you should use comments to explain complex chunks of code that may not be obvious at first glance. ")},
+        {
+         "comments5": ("No commenting",                                                                        -3, "You haven't really used any comments of note in your work. In future, you should use comments to explain complex chunks of code that may not be obvious at first glance. "),
+         "comments4": ("Alright commenting (i.e. have used them if needed)",                                   -2, "Your use of commenting is OK. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. In future, focus on providing explanatory comments rather than comments that merely repeat what can be gleamed from code. "),
+         "comments3": ("Excessive commenting given the complexity of the code",                                -1, "You have used a few too many comments in your coursework solution. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. "),
+         "comments2": ("Could have included additional comments to explain complex chunks of code",            -1, "You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. "),
+         "comments1": ("Good commenting in relevant places",                                                    0, "You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. ")
+        },
+         
+        {
+         "naming4":   ("Poor naming of variables ",                                                            -1, "You don't seem to have adopted a convention when it comes to naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 0),
+         "naming3":   ("Alright naming of variables and functions (e.g. some variables are not descriptive)", -.5, "In terms of naming convention, you could have shown greater care with naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 1),
+         "naming2":   ("Generally good naming of variables and functions",                                    -.5, "In terms of naming convention, you have used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 2),
+         "naming1":   ("Consistently excellent naming of variables and functions",                              0, "In terms of naming convention, you have consistently used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 3)
+        },
 
-        {"naming1":   ("Consistently good naming of variables and functions",                                 2, "In terms of naming convention, you have consistently used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 3),
-         "naming2":   ("Generally good naming of variables and functions",                                    1, "In terms of naming convention, you have used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 2),
-         "naming3":   ("Alright naming of variables and functions (e.g. some variables are not descriptive)", 1, "In terms of naming convention, you could have shown greater care with naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 1),
-         "naming4":   ("Poor naming of variables ",                                                           0, "CODE EFFICIENCY\nYou don't seem to have adopted a convention when it comes to naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 0)},
+        {
+         "except5":   (except5,                                                                                -4, "CODE EFFICIENCY\nFirstly, dissapointingly, despite being asked not to do so, you had a wildcard catch(...) in your code. "),
+         "except4":   ("Not really any exception handling in this coursework",                                 -3, "CODE EFFICIENCY\nWith respect to exceptions, you didn't seem to engage in the exception throwing/catching practice, as expected. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching.  "),
+         "except3":   ("Places where they should have caught exceptions",                                      -2, "CODE EFFICIENCY\nWith respect to exceptions, there are places where you should have caught exceptions. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching. "),
+         "except2":   ("Good use of exceptions throughout (not always caught with const ref)",                 -1, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very well in your coursework. However, you did not always catch your references as constant references as your told to do in lectures. "),
+         "except1":   ("Excellent use of exceptions throughout (caught with const ref)",                        0, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very exceptionally in your coursework, including catching them as constant references. ")
+        },
 
-        {"except1":   ("Good use of exceptions throughout (caught with const ref)",                           4, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very well in your coursework, including catching them as constant references. "),
-         "except2":   ("Good use of exceptions throughout (not caught with const ref)",                       3, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very well in your coursework. However, you did not always catch your references as constant references as your told to do in lectures. "),
-         "except3":   ("Places where they should have caught exceptions",                                     2, "CODE EFFICIENCY\nWith respect to exceptions, there are places where you should have caught exceptions. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching. "),
-         "except4":   ("Not really any exception handling in this coursework",                                1, "CODE EFFICIENCY\nWith respect to exceptions, you didn't seem to engage in the exception throwing/catching practice, as expected. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching.  "),
-         "except5":   ("Use of wildcard catch (...)",                                                         0, "CODE EFFICIENCY\nFirstly, dissapointingly, despite being asked not to do so, you had a wildcard catch(...) in your code. ")},
+        {
+         "const5":    ("No use of the const keyword with variables",                                           -4, "You don't seem to have used const in any significant way in your coursework. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const4":    ("Little use of the const keyword with variables",                                       -3, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const3":    ("Could have used more instances of the const keyword with variables",                   -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const1":    ("Perfect use of the const keyword for variables",                                        0, "In terms of using const for non-modifiable variables and references, you've used this very well. "),
+        },
 
-        {"const1":    ("Good use of the const keyword for variables",                                         4, "In terms of using const for non-modifiable variables and references, you've used this well. "),
-         "const2":    ("Could have used more instances of the const keyword with variables",                  2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const3":    ("Little use of the const keyword with variables",                                      1, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const4":    ("No use of the const keyword with variables",                                          0, "You don't seem to have used const in any significant way in your coursework. Using const whereever you will not be modifying a value or rely upon a variable to not change is good practice. ")},
+        {
+         "ref4":      ("Little to no use of pass-by-reference",                                                -2, "You didn't really use much pass-by-reference in your code, which means data ends up being needlessly copied around in your code. In future, think about whether a function needs a copy of a variable, or can rely upon a reference to the original variable.\n\n"),
+         "ref3":      ("Could have used more instances of pass-by-reference",                                -1.5, "You did use pass-by-reference in some of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though.\n\n"),
+         "ref2":      ("Good coverage of pass-by-reference where appropriate",                                 -1, "You did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though. Keep it up :)\n\n"),
+         "ref1":      ("Excellent use of pass-by-reference where appropriate",                                  0, "You did use pass-by-reference pretty much everywhere we expected it, which means data is not needlessly copied around in your code. Keep it up :)\n\n")
+        },
 
-        {"ref1":      ("Pass-by-reference where appropriate",                                                 4, "You did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. Keep it up :)\n\n"),
-         "ref2":      ("Could have used more instances of pass-by-reference",                                 2, "You did use pass-by-reference in some of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though.\n\n"),
-         "ref3":      ("Little to no use of pass-by-reference",                                               0, "You didn't really use much pass-by-reference in your code, which means data ends up being needlessly copied around in your code. In future, think about whether a function needs a copy of a variable, or can rely upon a reference to the original variable.\n\n")},
+        {
+         "const3":    ("Little use of the const keyword in fuction declarations",                              -1, "Quite a few of your function declarations have issues. You should always think about the use of const, noexcept, and reference/value types. "),
+         "const2":    ("Could have used more instances of the const keyword",                                 -.5, "Your function declarations are close to perfect, but you should always think about the use of const, noexcept, and reference/value types. "),
+         "const1":    ("Function declarations are perfect",                                                     0, "Your function declarations are perfect. Continue to always program with the use of const, noexcept, and reference/value types is needed. ")
+        },
 
-        {"const1":    ("Function declarations are perfect (e.g. const, noexcept, reference)",                 4, "Your function declarations are perfect. Continue to always program with the use of const, noexcept, and reference/value types is needed. "),
-         "const2":    ("Could have used more instances of the const keyword",                                 2, "Your function declarations are close to perfect, but you should always think about the use of const, noexcept, and reference/value types. "),
-         "const3":    ("Little use of the const keyword in fuction declarations",                             0, "Quite a few of your function declarations have issues. You should always think about the use of const, noexcept, and reference/value types. ")},
+        {
+         "redund4":   ("Quite a bit of redundant or repeated code",                                            -3, "There's a fair few instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
+         "redund3":   ("Some redundant or repeated code (e.g. could have been new functions)",                 -2, "You've included some instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
+         "redund2":   ("Maybe some redundant or repeated code",                                                -1, "Generally speaking, your code avoids redundant/repeated code, which is great.\n\n"),
+         "redund1":   ("No redundant or repeated code",                                                         0, "You've also managed to avoid redundant/repeated code throughout, which is always a bonus.\n\n")
+        },
 
-        {"redund1":   ("No redundant or repeated code",                                                       3, "You've also managed to avoid redundant/repeated code, which is always a bonus.\n\n"),
-         "redund2":   ("Some redundant or repeated code (e.g. could have been new functions)",                2, "You've included some instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
-         "redund3":   ("Quite a bit of redundant or repeated code",                                           0, "There's a fair few instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n")},
-
-        {"overall1":  ("Overall, this is an excellent coursework (quality, not completeness)",                0, "SUMMARY\nOverall, this is an excellent coursework. You have produced some great code. Well done!"),
-         "overall2":  ("Overall, this is a good coursework (quality, not completeness)",                      0, "SUMMARY\nOverall, this is an good coursework. You have produced some nice code, but there is some room for improvement. That said, you still did very well!"),
-         "overall3":  ("Overall, this is an ok coursework (quality, not completeness)",                       0, "SUMMARY\nOverall, this is an good attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall4":  ("Overall, this is a poor coursework (quality, not completeness)",                      0, "SUMMARY\nOverall, there is quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark.")}]
+        {
+         "overall8":  (" 0/14, this is a very poor coursework (quality, not completeness)",                   -14, "SUMMARY\nOverall, there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall7":  (" 2/14, this is a poor coursework (quality, not completeness)",                        -12, "SUMMARY\nOverall, this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall6":  (" 4/14, this is a OK coursework (quality, not completeness)",                          -10, "SUMMARY\nOverall, this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
+         "overall5":  (" 6/14, this is a good coursework (quality, not completeness)",                         -8, "SUMMARY\nOverall, this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall4":  (" 8/14, this is a very good coursework (quality, not completeness)",                    -6, "SUMMARY\nOverall, this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall3":  ("10/14, this is a great coursework (quality, not completeness)",                        -4, "SUMMARY\nOverall, this is an excellent coursework. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall2":  ("12/14, this is a excellent coursework (quality, not completeness)",                    -2, "SUMMARY\nOverall, this is an excellent coursework. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall1":  ("14/14: this is a perfect coursework (quality, not completeness)",                       0, "SUMMARY\nOverall, this is an perfect coursework. You have produced some great code. Well done!")
+        }
+      ]
 
     return stage_result(
       updated_label = "Marking finished",
