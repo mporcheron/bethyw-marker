@@ -48,9 +48,11 @@ class marker:
     self.progress["readme"]                  = stage("Read the student's README",                                  coursework.readme)
     self.progress["opensrc"]                 = stage("Begin reading through the student's code",                   coursework.opensrc)
     self.progress["negative_marking_switch"] = stage("Swap to negative marking from here on in",                   coursework.negative_marking_switch)
-    self.progress["function_ordering"]       = stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
-    self.progress["aggressive_warnings"]     = stage("Use GCC to test code quality with some aggressive warnings", coursework.aggressive_warnings)
     self.progress["memtest"]                 = stage("Run the coursework with Valgrind",                           coursework.memtest)
+    self.progress["input_source"]            = stage("Check InputSource and InputFile have virtual functions",     coursework.input_source)
+    self.progress["function_ordering"]       = stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
+    self.progress["not_const_functions"]     = stage("Check that the right functions are const",                   coursework.not_const_functions)    
+    self.progress["aggressive_warnings"]     = stage("Use GCC to test code quality with some aggressive warnings", coursework.aggressive_warnings)
     self.progress["quality"]                 = stage("Evaluate the coding quality",                                coursework.quality)
     #self.progress["feedback"]         = stage("Modify the feedback",                                        coursework.feedback)
 
@@ -887,7 +889,11 @@ class coursework:
 
 
 
-  def memtest(student_id, marks, feedback): # max -4 marks
+  def memtest(student_id, marks, feedback):
+    return stage_result(
+      updated_label = "Skipping Valgrind",
+      next_stage    = "input_source")
+        
     cmd = [coursework.GPP_COMMAND,
            "--std=c++14",
            "bethyw.cpp",
@@ -936,16 +942,30 @@ class coursework:
       feedback += "Great work, your code has no memory leaks.\n\n"
       return stage_result(
           updated_label    = "Coursework passed memory leak test",
-          next_stage       = "function_ordering",
+          next_stage       = "input_source",
           student_feedback = feedback,
           student_marks    = 0)
     else:
       feedback += "It seems that your code contains a one or more memory leaks. You should make sure you free any memory you allocate on the heap. In reality, you should have used good RAII principles taught in lectures and not needed to handle memory management at all.\n\n"
       return stage_result(
           updated_label    = "Coursework was found to contain memory leaks",
-          next_stage       = "function_ordering",
+          next_stage       = "input_source",
           student_marks    = -2,
           student_feedback = feedback)
+
+          
+  def input_source(student_id, marks, feedback): # max -1
+    multidecision = [
+        {
+         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -1, "You didn't make the InputSource and InputFile functions and destructor all virtual, as required. "),
+         "inpt1":     ("InputSource and InputFile functions + destructor are virtual",                         0, ""),
+        },
+      ]
+
+    return stage_result(
+      updated_label = "InputSource and InputFile functions checked",
+      decision      = multidecision,
+      next_stage    = "function_ordering")
 
 
 
@@ -1020,14 +1040,107 @@ class coursework:
         updated_label    = "The student has kept the functions in order",
         student_feedback = "CODE STYLE\nThank you for keeping the functions in the same order as in the provided code. This makes it easier to mark your work. ",
         student_marks    = 0,
-        next_stage       = "aggressive_warnings")
+        next_stage       = "not_const_functions")
     else:
       return stage_result(
         updated_label    = "The student didn't keep the functions in order",
         student_feedback = "CODE STYLE\nYou were asked to keep the functions in the same order as they were given to you in the block comments. Not doing this makes it significantly harder to mark your work. ",
         student_marks    = -.5,
-        next_stage       = "aggressive_warnings")
+        next_stage       = "not_const_functions")
 
+
+  def not_const_functions(student_id, marks, feedback): # max -2 marks
+    marks = 0
+    not_consty = []
+
+    # test area for const
+    cmd = [coursework.GPP_COMMAND,
+           "--std=c++14",
+           "area.cpp",
+           "-o",
+           "area"]
+    res = subprocess.run(cmd, cwd='./_constcheck', capture_output=True)
+    if res.returncode != 0:
+      marks = -.6
+    else:
+      res = subprocess.run(["./area"], cwd='./_constcheck', capture_output=True)
+      stdout = res.stdout.decode("utf-8")
+    
+      if "getLocalAuthorityCode() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Area::getLocalAuthorityCode()")
+      if "getName() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Area::getName()")
+      if "size() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Area::size()")
+    
+    # test areas for const
+    cmd = [coursework.GPP_COMMAND,
+           "--std=c++14",
+           "areas.cpp",
+           "-o",
+           "areas"]
+    res = subprocess.run(cmd, cwd='./_constcheck', capture_output=True)
+    if res.returncode != 0:
+      marks = -.2
+    else:
+      res = subprocess.run(["./areas"], cwd='./_constcheck', capture_output=True)
+      stdout = res.stdout.decode("utf-8")
+      
+      if "size() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Areas::size()")
+    
+    # test measure for const
+    cmd = [coursework.GPP_COMMAND,
+           "--std=c++14",
+           "measure.cpp",
+           "-o",
+           "measure"]
+    res = subprocess.run(cmd, cwd='./_constcheck', capture_output=True)
+    if res.returncode != 0:
+      marks = -1.2
+    else:
+      res = subprocess.run(["./measure"], cwd='./_constcheck', capture_output=True)
+      stdout = res.stdout.decode("utf-8")
+      if "getCodename() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Measure::getCodename()")
+      if "getLabel() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Measure::getLabel()")
+      if "size() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Measure::size()")
+      if "getDifference() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Measure::getDifference()")
+      if "getDifferenceAsPercentage() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Measure::getDifferenceAsPercentage()")
+      if "getAverage() = 0" in stdout:
+        marks -= .2
+        not_consty.append("Measure::getAverage()")
+      
+    if marks == -.2:
+      feedback = "In the various block comments in the comment, we expected various class functions to be declared as const (i.e., to be callable in a constant context). You did this well, although missed this for "
+      for function in not_consty:
+        feedback += function + '. '
+    elif marks < -.2:
+      feedback = "\n\nIn the various block comments in the comment, we expected the following class functions to be declared as const (i.e., to be callable in a constant context):\n"
+      for function in not_consty:
+        feedback += '  - ' + function + '\n'
+      feedback += '\n'
+    else:
+      feedback = 'Well done for also correctly declaring the various requested functions as const.'
+      
+    return stage_result(
+      updated_label    = "Deducted %f marks for non-const functions" % marks,
+      next_stage       = "aggressive_warnings",
+      student_feedback = feedback,
+      student_marks    = marks)
 
 
   def aggressive_warnings(student_id, marks, feedback): # max -5.5 marks
@@ -1140,9 +1253,9 @@ class coursework:
         next_stage       = "quality",
         student_feedback = feedback + "\n",
         student_marks    = -marks_subtraction)
-
           
-  def quality(student_id, marks, feedback): # max -32
+          
+  def quality(student_id, marks, feedback): # max -31
     except5 = "Use of wildcard catch (...)"
     files = ["bethyw.cpp",
              "input.cpp",
@@ -1159,10 +1272,16 @@ class coursework:
           except5="!!! CHECK %s FOR WILDCARD CATCH !!!"
           break
            
-    multidecision = [
+    multidecision = [        
         {
-         "comments5": ("No commenting",                                                                        -3, "You haven't really used any comments of note in your work. In future, you should use comments to explain complex chunks of code that may not be obvious at first glance. "),
-         "comments4": ("Alright commenting (i.e. have used them if needed)",                                   -2, "Your use of commenting is OK. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. In future, focus on providing explanatory comments rather than comments that merely repeat what can be gleamed from code. "),
+         "messy1":    ("Indentation is very messy",                                                            -1, "Your use of indentation seems somewhat inconsistent and messy. "),
+         "messy2":    ("Indentation is a little messy/mostly OK",                                             -.5, "Your use of indentation seems occasionally inconsistent and messy. "),
+         "messy3":    ("Indentation is perfect",                                                                0, "Your use of indentation is consistent. "),
+        },
+        
+        {
+         "comments5": ("No commenting",                                                                        -2, "You haven't really used any comments of note in your work. In future, you should use comments to explain complex chunks of code that may not be obvious at first glance. "),
+         "comments4": ("Alright commenting (i.e. have used them if needed)",                                 -1.5, "Your use of commenting is OK. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. In future, focus on providing explanatory comments rather than comments that merely repeat what can be gleamed from code. "),
          "comments3": ("Excessive commenting given the complexity of the code",                                -1, "You have used a few too many comments in your coursework solution. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. "),
          "comments2": ("Could have included additional comments to explain complex chunks of code",            -1, "You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. "),
          "comments1": ("Good commenting in relevant places",                                                    0, "You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. ")
@@ -1170,7 +1289,7 @@ class coursework:
          
         {
          "naming4":   ("Poor naming of variables ",                                                            -1, "You don't seem to have adopted a convention when it comes to naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 0),
-         "naming3":   ("Alright naming of variables and functions (e.g. some variables are not descriptive)", -.5, "In terms of naming convention, you could have shown greater care with naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 1),
+         "naming3":   ("OK naming of variables and functions (e.g. some variables are not descriptive)",      -.5, "In terms of naming convention, you could have shown greater care with naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 1),
          "naming2":   ("Generally good naming of variables and functions",                                    -.5, "In terms of naming convention, you have used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 2),
          "naming1":   ("Consistently excellent naming of variables and functions",                              0, "In terms of naming convention, you have consistently used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 3)
         },
@@ -1196,12 +1315,6 @@ class coursework:
          "ref3":      ("Could have used more instances of pass-by-reference",                                -1.5, "You did use pass-by-reference in some of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though.\n\n"),
          "ref2":      ("Good coverage of pass-by-reference where appropriate",                                 -1, "You did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though. Keep it up :)\n\n"),
          "ref1":      ("Excellent use of pass-by-reference where appropriate",                                  0, "You did use pass-by-reference pretty much everywhere we expected it, which means data is not needlessly copied around in your code. Keep it up :)\n\n")
-        },
-
-        {
-         "const3":    ("Little use of the const keyword in function declarations",                             -1, "Quite a few of your function declarations have issues. You should always think about the use of const, noexcept, and reference/value types. "),
-         "const2":    ("Could have used more instances of the const keyword",                                 -.5, "Your function declarations are close to perfect, but you should always think about the use of const, noexcept, and reference/value types. "),
-         "const1":    ("Function declarations are perfect with const",                                          0, "Your function declarations are perfect. Continue to always program with the use of const, noexcept, and reference/value types is needed. ")
         },
 
         {
