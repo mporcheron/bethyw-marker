@@ -19,13 +19,13 @@ class marker:
   MARKS_DIR       = os.getcwd() + "/_marks"
   AUTOGRADER_FILE = MARKS_DIR + "/autograder.csv"
 
-  def __init__(self, autograder_file, student_id):
+  def __init__(self, autograder_file, submissions_dir, student_id):
     self.stdscr        = None
     self.start_pos     = 0
     self.auto_progress = True
-    
+
     marker.AUTOGRADER_FILE = autograder_file
-    
+
     # student's detail)
     self.student_id      = student_id
     self.marks           = 0
@@ -51,9 +51,11 @@ class marker:
     self.progress["memtest"]                 = stage("Run the coursework with Valgrind",                           coursework.memtest)
     self.progress["input_source"]            = stage("Check InputSource and InputFile have virtual functions",     coursework.input_source)
     self.progress["function_ordering"]       = stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
-    self.progress["not_const_functions"]     = stage("Check that the right functions are const",                   coursework.not_const_functions)    
+    self.progress["not_const_functions"]     = stage("Check that the right functions are const",                   coursework.not_const_functions)
     self.progress["aggressive_warnings"]     = stage("Use GCC to test code quality with some aggressive warnings", coursework.aggressive_warnings)
-    self.progress["quality"]                 = stage("Evaluate the coding quality",                                coursework.quality)
+    self.progress["code_style"]              = stage("Evaluate the coding style",                                  coursework.code_style)
+    self.progress["exceptions"]              = stage("Check their exception handling",                             coursework.exceptions)
+    self.progress["code_efficiency"]         = stage("Evaluate the coding style",                                  coursework.code_efficiency)
     #self.progress["feedback"]         = stage("Modify the feedback",                                        coursework.feedback)
 
     self.current_stage = "setup"
@@ -71,7 +73,7 @@ class marker:
         pass
 
     curses.start_color()
-    
+
     # default
     curses.init_pair(1, curses.COLOR_WHITE,   curses.COLOR_BLACK)
 
@@ -81,10 +83,10 @@ class marker:
     # command
     curses.init_pair(3, curses.COLOR_CYAN,    curses.COLOR_BLACK)
     curses.init_pair(4, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    
+
     # error popup windows
     curses.init_pair(5, curses.COLOR_RED,     curses.COLOR_BLACK)
-    
+
     # non-error popup windows
     curses.init_pair(6, curses.COLOR_GREEN,   curses.COLOR_BLACK)
     curses.init_pair(7, curses.COLOR_GREEN,   curses.COLOR_BLACK)
@@ -264,7 +266,7 @@ class marker:
 
   def setup_viewtext(self, title, contents, is_error=False):
     colour = curses.color_pair(5) if is_error else curses.color_pair(6)
-      
+
     start_y = 4
     start_x = 10
     height = self.max_y - 7
@@ -278,7 +280,7 @@ class marker:
 
     self.win_viewtext.refresh()
     curses.doupdate()
-    
+
     max_visible_columns = self.max_x - 24
     init_contents_by_line = contents.split('\n')
     formatted_contents_by_line = []
@@ -291,7 +293,7 @@ class marker:
         except IndexError:
           file_ended = True
           break
-      
+
         if len(line) > 0 and line[0] == ' ':
           line = line[1:]
 
@@ -310,8 +312,8 @@ class marker:
           indent_by = len(head) - len(head.lstrip('* -1234567890#'))
           tail = line[split_proposal:]
           tail = tail.rjust(len(tail) + indent_by, ' ')
-      
-          formatted_contents_by_line.append(head)      
+
+          formatted_contents_by_line.append(head)
           init_contents_by_line[arr_pos] = tail
 
       arr_pos += 1
@@ -325,18 +327,18 @@ class marker:
   def refresh_viewtext(self, contents_by_line, current_starting_line = 0, is_error=False):
     colour = curses.color_pair(1) if is_error else curses.color_pair(6)
     total_lines = len(contents_by_line)
-    
+
     start_printing_at = 1
     max_visible_lines = self.max_y - 10
     at_start_of_text = True if current_starting_line == 0 else False
     at_end_of_text = False
     wrapped_lines = 0
     num_printed_lines = 0
-    
+
     for actual_line in range(current_starting_line, total_lines):
       y_pos = start_printing_at + num_printed_lines
       self.win_viewtext.addstr(y_pos, 2, contents_by_line[actual_line], colour)
-      
+
       if actual_line == 0:
         at_start_of_text = True
       elif actual_line + 1 == total_lines:
@@ -345,9 +347,9 @@ class marker:
       num_printed_lines += 1
       if y_pos > max_visible_lines:
         break
-    
+
     self.win_viewtext.refresh()
-    
+
     while True:
       char =  self.win_viewtext.getch()
       if char == 65 and not at_start_of_text: # up arrow
@@ -358,7 +360,7 @@ class marker:
         break
       elif char == 10: # enter
         return
-      
+
       self.win_viewtext.refresh()
 
 
@@ -395,7 +397,7 @@ class marker:
                                              self.feedback)
 
     self.status        = stage_result.updated_label
-    
+
     if stage_result.stderr is not None:
       self.setup_viewtext("ERROR: " + self.status.upper(), stage_result.stderr, True)
 
@@ -477,11 +479,12 @@ class stage_result:
 
 
 class coursework:
-  GPP_COMMAND   = 'g++-10'
-  CATCH2_EXE    = os.getcwd() + "/_bin/catch.o"
-  MARKS_DIR     = os.getcwd() + "/_marks"
-  ORIG_SRC_DIR  = os.getcwd() + "/_origsrc"
-  TEST_SRC_DIR  = os.getcwd() + "/_tempsrc"
+  GPP_COMMAND      = 'g++-10'
+  CATCH2_EXE       = os.getcwd() + "/_bin/catch.o"
+  MARKS_DIR        = os.getcwd() + "/_marks"
+  ORIG_SRC_DIR     = os.getcwd() + "/_origsrc"
+  TEST_SRC_DIR     = os.getcwd() + "/_tempsrc"
+  SUBMISSIONS_DIR  = os.getcwd() + "/submissions"
 
   CMD_OPEN_GIT      = ["open","-a","Sourcetree"]
   CMD_OPEN_README   = ["open","-a","TextMate"]
@@ -498,27 +501,30 @@ class coursework:
       shutil.rmtree(directory)
     os.rmdir(directory)
 
-
   def setup(student_id, marks, feedback):
+    # delete any previous data from the temp directory and reset it
     try:
       coursework.__rmdir(coursework.TEST_SRC_DIR)
     except FileNotFoundError:
       pass
-      
+
     shutil.copytree(coursework.ORIG_SRC_DIR, coursework.TEST_SRC_DIR)
 
+
+    # copy files from student's source directory
+    source_directory = coursework.SUBMISSIONS_DIR + "/" + student_id
+
     try:
-      coursework.__rmdir(student_id + "/bin")
+      coursework.__rmdir(source_directory + "/bin")
     except FileNotFoundError:
       pass
 
-    # try:
-    for src_dir, dirs, files in os.walk(student_id):
-      dst_dir = src_dir.replace(student_id, coursework.TEST_SRC_DIR, 1)
-      
+    for src_dir, dirs, files in os.walk(source_directory):
+      dst_dir = src_dir.replace(source_directory, coursework.TEST_SRC_DIR, 1)
+
       if not os.path.exists(dst_dir):
         os.makedirs(dst_dir)
-      
+
       for file in files:
         src_file = os.path.join(src_dir, file)
         dst_file = os.path.join(dst_dir, file)
@@ -617,12 +623,12 @@ class coursework:
 
       feedback += "Using the provided output tests in autograder, we can say that:\n"
       for temp in iter(temp_passed):
-        feedback += '  - ' + temp + '\n'          
+        feedback += '  - ' + temp + '\n'
       for temp in iter(temp_passed):
         feedback += '  - ' + temp + '\n'
       feedback += '\n'
-      
-      
+
+
       # Extended output tests
       if autograder_marks['Extended output tests Total'] == 0:
         feedback += "We also ran your code against some additional output tests, although your program sadly scored 0 against these tests. "
@@ -635,7 +641,7 @@ class coursework:
 
       temp_failed = []
       temp_passed = []
-     
+
       if autograder_marks['Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j'] == 0:
         temp_failed.append("When testing the JSON output of your code with a  local authority code, and various measures, we were still expecting an empty JSON object (i.e., {})")
       else:
@@ -668,7 +674,7 @@ class coursework:
 
       feedback += "We found that:\n"
       for temp in iter(temp_passed):
-        feedback += '  - ' + temp + '\n'          
+        feedback += '  - ' + temp + '\n'
       for temp in iter(temp_passed):
         feedback += '  - ' + temp + '\n'
       feedback += '\n'
@@ -677,7 +683,7 @@ class coursework:
       if autograder_marks['Provided Catch2 unit tests Total'] == 0:
         feedback += "It seems your code failed to pass any of the provided Catch2 tests. You were advised to make sure you passed these tests. "
         if autograder_marks['Extended Catch2 unit tests Total'] == 0:
-          feedback = "Your also scored 0 on the additional Catch2 tests we performed, testing many more edge cases in your code. "          
+          feedback = "Your also scored 0 on the additional Catch2 tests we performed, testing many more edge cases in your code. "
         feedback += "Although there are an infinite number of ways to implement this coursework, you were specifically asked to implement functions in a given way. In future, I recommend you read coursework specifications more closely to understand what is asked of you.  "
       elif autograder_marks['Provided Catch2 unit tests Total'] < 10:
         feedback += "You code passed less than 50% of the provided Catch2 tests. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well here. You had local copies of these tests and could have examined their source closely to work out how to make sure your code complied with them. "
@@ -742,7 +748,7 @@ class coursework:
         temp.append("Your implementation of the Measure class doesn't seem to be compliant with the test given to you")
       else:
         temp.append("Your implementation of the Measure class, including the constructor and storing a codename and label, is perfect")
-        
+
       if autograder_marks['Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existent value will throw an exception'] == 0:
         if autograder_marks['Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year'] == 0:
           temp.append("Your implementation of the Measure class doesn't seem to work with being populated with values properly, such as in situations where multiple values are inserted at the same year, or retrieving non-existent years throws an error")
@@ -842,9 +848,9 @@ class coursework:
 
       feedback += "We found that:\n"
       for temp in iter(temp):
-        feedback += '  - ' + temp + '\n'   
+        feedback += '  - ' + temp + '\n'
       feedback += '\n'
-      
+
 
       return stage_result(
         updated_label    = "Autograder marks imported and feedback generated",
@@ -861,7 +867,7 @@ class coursework:
     if not os.path.isfile(coursework.TEST_SRC_DIR + "/README.md"):
       return stage_result(
         updated_label = "No README.md included",
-        next_stage    = "compile")
+        next_stage    = "opensrc")
 
     with open(coursework.TEST_SRC_DIR + "/README.md", "r") as f:
       contents = f.read()
@@ -881,6 +887,7 @@ class coursework:
       next_stage        = "negative_marking_switch")
 
 
+
   def negative_marking_switch(student_id, marks, feedback):
       return stage_result(
           updated_label    = "Added 40 marks, remaining parts are negative marked...",
@@ -889,11 +896,11 @@ class coursework:
 
 
 
-  def memtest(student_id, marks, feedback):
+  def memtest(student_id, marks, feedback): # max: 0 marks
     return stage_result(
       updated_label = "Skipping Valgrind",
       next_stage    = "input_source")
-        
+
     cmd = [coursework.GPP_COMMAND,
            "--std=c++14",
            "bethyw.cpp",
@@ -915,7 +922,7 @@ class coursework:
         updated_label = "Could not compile the coursework with GCC {0}".format(res.returncode),
         next_stage    = None,
         details       = details)
-    
+
     cmd = ["valgrind",
            "--leak-check=yes",
            "--show-leak-kinds=all",
@@ -953,12 +960,12 @@ class coursework:
           student_marks    = -2,
           student_feedback = feedback)
 
-          
+
   def input_source(student_id, marks, feedback): # max -1
     multidecision = [
         {
-         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -1, "You didn't make the InputSource and InputFile functions and destructor all virtual, as required. "),
-         "inpt1":     ("InputSource and InputFile functions + destructor are virtual",                         0, ""),
+         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -1, "INHERITANCE\nYou didn't make the InputSource and InputFile functions and destructor all virtual, as required. "),
+         "inpt1":     ("InputSource and InputFile functions + destructor are virtual",                         0, "INHERITANCE\nIn InputSource and InputFile, you correctly used virtual functions, including with a virtual destructor."),
         },
       ]
 
@@ -1038,15 +1045,16 @@ class coursework:
     if in_order:
       return stage_result(
         updated_label    = "The student has kept the functions in order",
-        student_feedback = "CODE STYLE\nThank you for keeping the functions in the same order as in the provided code. This makes it easier to mark your work. ",
+        student_feedback = "\n\nCODE STYLE\nThank you for keeping the functions in the same order as in the provided code. This makes it easier to mark your work. ",
         student_marks    = 0,
         next_stage       = "not_const_functions")
     else:
       return stage_result(
         updated_label    = "The student didn't keep the functions in order",
-        student_feedback = "CODE STYLE\nYou were asked to keep the functions in the same order as they were given to you in the block comments. Not doing this makes it significantly harder to mark your work. ",
+        student_feedback = "\n\nCODE STYLE\nYou were asked to keep the functions in the same order as they were given to you in the block comments. Not doing this makes it significantly harder to mark your work. ",
         student_marks    = -.5,
         next_stage       = "not_const_functions")
+
 
 
   def not_const_functions(student_id, marks, feedback): # max -2 marks
@@ -1065,7 +1073,7 @@ class coursework:
     else:
       res = subprocess.run(["./area"], cwd='./_constcheck', capture_output=True)
       stdout = res.stdout.decode("utf-8")
-    
+
       if "getLocalAuthorityCode() = 0" in stdout:
         marks -= .2
         not_consty.append("Area::getLocalAuthorityCode()")
@@ -1075,7 +1083,7 @@ class coursework:
       if "size() = 0" in stdout:
         marks -= .2
         not_consty.append("Area::size()")
-    
+
     # test areas for const
     cmd = [coursework.GPP_COMMAND,
            "--std=c++14",
@@ -1088,11 +1096,11 @@ class coursework:
     else:
       res = subprocess.run(["./areas"], cwd='./_constcheck', capture_output=True)
       stdout = res.stdout.decode("utf-8")
-      
+
       if "size() = 0" in stdout:
         marks -= .2
         not_consty.append("Areas::size()")
-    
+
     # test measure for const
     cmd = [coursework.GPP_COMMAND,
            "--std=c++14",
@@ -1123,7 +1131,7 @@ class coursework:
       if "getAverage() = 0" in stdout:
         marks -= .2
         not_consty.append("Measure::getAverage()")
-      
+
     if marks == -.2:
       feedback = "In the various block comments in the comment, we expected various class functions to be declared as const (i.e., to be callable in a constant context). You did this well, although missed this for "
       for function in not_consty:
@@ -1134,13 +1142,14 @@ class coursework:
         feedback += '  - ' + function + '\n'
       feedback += '\n'
     else:
-      feedback = 'Well done for also correctly declaring the various requested functions as const.'
-      
+      feedback = 'Well done for also correctly declaring the various requested functions as const. '
+
     return stage_result(
       updated_label    = "Deducted %f marks for non-const functions" % marks,
       next_stage       = "aggressive_warnings",
       student_feedback = feedback,
       student_marks    = marks)
+
 
 
   def aggressive_warnings(student_id, marks, feedback): # max -5.5 marks
@@ -1184,7 +1193,7 @@ class coursework:
     if res.returncode == 0 and stderr == "":
       return stage_result(
         updated_label    = "Coursework compiled without any warnings, despite all the extra flags",
-        next_stage       = "quality")
+        next_stage       = "code_style")
 
     else:
       quality_errors = {
@@ -1206,7 +1215,7 @@ class coursework:
       feedback_list = []
       found_quality_errors = []
       marks_subtraction = 0
-      
+
       for line in stderr.split("\n"):
         for gcc_str, parse in quality_errors.items():
           if gcc_str not in found_quality_errors:
@@ -1220,7 +1229,7 @@ class coursework:
                   temp_feedback = temp_feedback.replace("__", match.group(i+1), 1)
                 feedback_list.append(temp_feedback)
                 marks_subtraction -= parse[0]
-                
+
                 found_quality_errors.append(gcc_str)
                 try:
                   for friend_match in parse[4]:
@@ -1229,15 +1238,15 @@ class coursework:
                   pass
               else:
                 pass
-          
+
       marks_subtraction = max(5, marks_subtraction)
 
-      if len(feedback_list) == 0:  
+      if len(feedback_list) == 0:
         return stage_result(
           updated_label    = "Deducted %d marks for warnings" % -(marks_subtraction),
           details          = "No automatically detected issues thus no marks could be automatically deducted. Please read the output below and prepare to modify the students feedback to include the issues highlighted!\n\n" + stderr,
-          next_stage       = "quality")
-        
+          next_stage       = "code_style")
+
       elif len(feedback_list) == 1:
         lower = lambda s: s[:1].lower() + s[1:] if s else ''
         feedback = "While reviewing your code, we noticed the following that " + lower(feedback_list[0]) + "\n"
@@ -1246,39 +1255,24 @@ class coursework:
         feedback = "\n\nWhile reviewing your code, we noticed the following that:\n"
         for i, feedback_item in enumerate(feedback_list):
           feedback += '  ' + str(i+1) + ". " + feedback_item + "\n"
-      
+
       return stage_result(
         updated_label    = "Deducted %f marks for warnings" % marks_subtraction,
         details          = stderr,
-        next_stage       = "quality",
+        next_stage       = "code_style",
         student_feedback = feedback + "\n",
         student_marks    = -marks_subtraction)
-          
-          
-  def quality(student_id, marks, feedback): # max -31
-    except5 = "Use of wildcard catch (...)"
-    files = ["bethyw.cpp",
-             "input.cpp",
-             "areas.cpp",
-             "area.cpp",
-             "measure.cpp"]
 
-    for file in files:
-      with open(coursework.TEST_SRC_DIR + "/" + file, 'r') as f:
-        all_lines = ''.join(f.readlines())
-        wildcard_catch = re.compile(r'catch\(\s*...\s*\)')
-        match = re.search(wildcard_catch, all_lines)
-        if match is not None:
-          except5="!!! CHECK %s FOR WILDCARD CATCH !!!"
-          break
-           
-    multidecision = [        
+
+
+  def code_style(student_id, marks, feedback): # max -6
+    multidecision = [
         {
          "messy1":    ("Indentation is very messy",                                                            -1, "Your use of indentation seems somewhat inconsistent and messy. "),
          "messy2":    ("Indentation is a little messy/mostly OK",                                             -.5, "Your use of indentation seems occasionally inconsistent and messy. "),
          "messy3":    ("Indentation is perfect",                                                                0, "Your use of indentation is consistent. "),
         },
-        
+
         {
          "comments5": ("No commenting",                                                                        -2, "You haven't really used any comments of note in your work. In future, you should use comments to explain complex chunks of code that may not be obvious at first glance. "),
          "comments4": ("Alright commenting (i.e. have used them if needed)",                                 -1.5, "Your use of commenting is OK. Remember, you only need comments to explain complex chunks of code rather than individual lines. You were told to assume that the people marking your work know C++. In future, focus on providing explanatory comments rather than comments that merely repeat what can be gleamed from code. "),
@@ -1286,41 +1280,170 @@ class coursework:
          "comments2": ("Could have included additional comments to explain complex chunks of code",            -1, "You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. "),
          "comments1": ("Good commenting in relevant places",                                                    0, "You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. ")
         },
-         
+
         {
          "naming4":   ("Poor naming of variables ",                                                            -1, "You don't seem to have adopted a convention when it comes to naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 0),
          "naming3":   ("OK naming of variables and functions (e.g. some variables are not descriptive)",      -.5, "In terms of naming convention, you could have shown greater care with naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 1),
          "naming2":   ("Generally good naming of variables and functions",                                    -.5, "In terms of naming convention, you have used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 2),
          "naming1":   ("Consistently excellent naming of variables and functions",                              0, "In terms of naming convention, you have consistently used good naming of variables etc. in your code. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments.\n\n", 3)
         },
-
+        
         {
-         "except5":   (except5,                                                                                -4, "CODE EFFICIENCY\nFirstly, disappointingly, despite being asked not to do so, you had a wildcard catch(...) in your code. "),
-         "except4":   ("Not really any exception handling in this coursework",                                 -3, "CODE EFFICIENCY\nWith respect to exceptions, you didn't seem to engage in the exception throwing/catching practice, as expected. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching.  "),
-         "except3":   ("Places where they should have caught exceptions",                                      -2, "CODE EFFICIENCY\nWith respect to exceptions, there are places where you should have caught exceptions. You should have inspected a reference manual for the Standard Library functions you use to determine if they throw exceptions that may need catching. "),
-         "except2":   ("Good use of exceptions throughout (not always caught with const ref)",                 -1, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very well in your coursework. However, you did not always catch your references as constant references as your told to do in lectures. "),
-         "except1":   ("Excellent use of exceptions throughout (caught with const ref)",                        0, "CODE EFFICIENCY\nWith respect to exceptions, you have used these very exceptionally in your coursework, including catching them as constant references. ")
-        },
-
-        {
-         "const5":    ("No use of the const keyword with variables",                                           -4, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const4":    ("Little use of the const keyword with variables",                                       -3, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const3":    ("Could have used more instances of the const keyword with variables",                   -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const5":    ("No use of the const keyword with variables",                                           -2, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const4":    ("Little use of the const keyword with variables",                                       -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
+         "const3":    ("Could have used more instances of the const keyword with variables",                 -1.5, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
          "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
          "const1":    ("Perfect use of the const keyword for variables",                                        0, "In terms of using const for non-modifiable variables and references, you've used this very well. "),
         },
+      ]
 
+    return stage_result(
+      updated_label = "Code style checking finished",
+      decision      = multidecision,
+      next_stage    = "exceptions")
+
+
+
+  def exceptions(student_id, marks, feedback): # max -6
+    # Wildcard catch test
+    files = ["bethyw.cpp",
+             "bethyw.h",
+             "input.cpp",
+             "input.h",
+             "areas.cpp",
+             "areas.h",
+             "area.cpp",
+             "area.h",
+             "measure.cpp",
+             "measure.h"]
+    found_in = []
+
+    for file in files:
+      with open(coursework.TEST_SRC_DIR + "/" + file, 'r') as f:
+        all_lines = ''.join(f.readlines())
+        wildcard_catch = re.compile(r'catch\s*\(\s*...\s*\)')
+        match = re.search(wildcard_catch, all_lines)
+        if match is not None:
+          found_in.append(file)
+          break
+
+    if len(found_in) > 0:
+      mark = -2
+      feedback = "\n\nEXCEPTIONS\nFirstly, disappointingly, despite being asked not to do so, you had a wildcard catch(...) in your code. We found this in "
+      for i, filename in enumerate(found_in):
+        feedback += filename
+        if i + 2 == len(found_in):
+          feedback += ' and '
+        elif i + 1 < len(found_in):
+          feedback += ', '
+      feedback += '.'
+    else:
+      feedback = "\n\nEXCEPTIONS\n"
+      marks = 0
+
+    # Const reference catch check
+    files = ["bethyw.cpp",
+             "bethyw.h",
+             "input.cpp",
+             "input.h",
+             "areas.cpp",
+             "areas.h",
+             "area.cpp",
+             "area.h",
+             "measure.cpp",
+             "measure.h"]
+    found_in = []
+
+    num_exceptions = 0
+    num_const = 0
+    num_ref = 0
+    non_constref_exceptions = []
+    re_catch = re.compile(r'catch\s*\(\s*([^)]*)\s*\)')
+    for file in files:
+      identified_catch_statements = []
+
+      with open("_tempsrc/" + file, 'r') as f:
+        for no, line in enumerate(f.readlines()):
+          matches = re.findall(re_catch, line)  
+
+          for match in matches:
+            num_exceptions += 1
+            identified_catch_statement = ''.join(match)
+
+            if 'const ' in identified_catch_statement:
+              num_const += 1
+              if '&' in identified_catch_statement:
+                num_ref += 1
+            else:
+              non_constref_exceptions.append(match + " (" + file + ", line " + str(no+1) + ")")
+
+              if '&' in identified_catch_statement:
+                num_ref += 1
+    
+    if num_const == num_exceptions:
+      feedback += "You consistently used const when when catching exceptions, which is good practice that we covered in lectures. "
+    elif num_const == 0:
+      feedback += "When catching exceptions, you never caught your exception objects as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
+      marks += -2
+    elif num_const/num_exceptions > .75:
+      feedback += "When catching exceptions, you caught nearly all of your exception objects as const, although you missed the const keyword a few times. "
+      marks += -1.25
+    elif num_const/num_exceptions > .5:
+      feedback += "When catching exceptions, you caught most of your exception objects as const, which we covered in lectures as something you should be doing. "
+      marks += -1.5
+    elif num_const/num_exceptions > .25:
+      feedback += "When catching exceptions, most of your exception objects weren't caught as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
+      marks += -1.75
+    else:
+      feedback += "When catching exceptions, the majority of your exception objects weren't caught as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
+      marks += -2
+
+    if num_ref == num_exceptions:
+      feedback += "You did catch them all as references, which means you avoided copies of the exception objects being made when they are thrown. "
+    elif num_ref == 0:
+      feedback += "Sadly, you didn't catch them as references, which means when an exception was thrown a copy of the exception object was made. "
+      marks += -2
+    elif num_ref/num_exceptions > .75:
+      feedback += "You caught nearly all of the exceptions as references, but at times caught exceptions by value. This means that a copy of an exception object would be made when an exception is made. "
+      marks += -1.25
+    elif num_const/num_exceptions > .5:
+      feedback += "You caught most of the exceptions as references, but at times caught exceptions by value. This means that a copy of an exception object would be made when an exception is made. "
+      marks += -1.5
+    elif num_const/num_exceptions > .25:
+      feedback += "Sadly, you failed to catch most of the exceptions as references. This means that a copy of an exception object would be made when an exception is made. "
+      marks += -1.75
+    else:
+      feedback += "Sadly, pretty much all of your exceptions were not caught as references. This means that a copy of an exception object would be made when an exception is made. "
+      marks += -2
+      
+    feedback += "\n"
+    if len(non_constref_exceptions) > 0:
+      feedback += "\nThe places we noticed you failed to fully use constant references are:\n"
+      for non_constref_exception in non_constref_exceptions:
+        feedback += "  - " + non_constref_exception + "\n"
+    feedback += "\n"
+
+    return stage_result(
+      updated_label    = "Exceptions checked (%d total, %d const, %d ref)" % (num_exceptions, num_const, num_ref),
+      student_feedback = feedback,
+      student_marks    = marks,
+      next_stage       = "code_efficiency")
+
+
+
+  def code_efficiency(student_id, marks, feedback): # max -19
+    multidecision = [
         {
-         "ref4":      ("Little to no use of pass-by-reference",                                                -2, "You didn't really use much pass-by-reference in your code, which means data ends up being needlessly copied around in your code. In future, think about whether a function needs a copy of a variable, or can rely upon a reference to the original variable.\n\n"),
-         "ref3":      ("Could have used more instances of pass-by-reference",                                -1.5, "You did use pass-by-reference in some of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though.\n\n"),
-         "ref2":      ("Good coverage of pass-by-reference where appropriate",                                 -1, "You did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though. Keep it up :)\n\n"),
-         "ref1":      ("Excellent use of pass-by-reference where appropriate",                                  0, "You did use pass-by-reference pretty much everywhere we expected it, which means data is not needlessly copied around in your code. Keep it up :)\n\n")
+         "ref4":      ("Little to no use of pass-by-reference",                                                -2, "CODE EFFICIENCY\nYou didn't really use much pass-by-reference in your code, which means data ends up being needlessly copied around in your code. In future, think about whether a function needs a copy of a variable, or can rely upon a reference to the original variable.\n\n"),
+         "ref3":      ("Could have used more instances of pass-by-reference",                                -1.5, "CODE EFFICIENCY\nYou did use pass-by-reference in some of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though.\n\n"),
+         "ref2":      ("Good coverage of pass-by-reference where appropriate",                                 -1, "CODE EFFICIENCY\nYou did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though. Keep it up :)\n\n"),
+         "ref1":      ("Excellent use of pass-by-reference where appropriate",                                  0, "CODE EFFICIENCY\nYou did use pass-by-reference pretty much everywhere we expected it, which means data is not needlessly copied around in your code. Keep it up :)\n\n")
         },
 
         {
          "redund4":   ("Quite a bit of redundant or repeated code",                                            -3, "There's a fair few instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
          "redund3":   ("Some redundant or repeated code (e.g. could have been new functions)",                 -2, "You've included some instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
-         "redund2":   ("Maybe some redundant or repeated code",                                                -1, "Generally speaking, your code avoids redundant/repeated code, which is great.\n\n"),
+         "redund2":   ("Maybe some redundant or repeated code",                                                -1, "Generally speaking, your solution avoids redundant/repeated code. Don't be afraid of refactoring code into separate functions to enhance readability and clarity of your code.\n\n"),
          "redund1":   ("No redundant or repeated code",                                                         0, "You've also managed to avoid redundant/repeated code throughout, which is always a bonus.\n\n")
         },
 
@@ -1341,6 +1464,3 @@ class coursework:
       decision      = multidecision,
       next_stage    = None)
 
-
-  def feedback(student_id, marks, feedback):
-      pass
