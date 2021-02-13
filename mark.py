@@ -15,11 +15,17 @@ parser.add_argument(
   help="Autograder grades export CSV")
 
 parser.add_argument(
+  '-sd', '--submissions-dir',
+  type=str, 
+  default='submissions/',
+  help="Directory containing all submissions")
+  
+parser.add_argument(
   '-s', '--student',
   type=str, 
   required=True,
   help="Student submission directory")
 
 args = parser.parse_args()
-m = marker(args.autograder, args.student)
+m = marker(args.autograder, args.submissions_dir, args.student)
 wrapper(m.run)
