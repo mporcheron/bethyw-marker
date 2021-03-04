@@ -621,7 +621,7 @@ class coursework:
       else:
         temp_passed.append("Your code generated the expected textual output for the complete-popden dataset, when filtered for a specific area, and then a measure that was not contained in this file.")
 
-      feedback += "Using the provided output tests in autograder, we can say that:\n"
+      feedback += "Using the provided output tests in Autograder, we can say that:\n"
       for temp in iter(temp_passed):
         feedback += '  - ' + temp + '\n'
       for temp in iter(temp_passed):
@@ -643,9 +643,9 @@ class coursework:
       temp_passed = []
 
       if autograder_marks['Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j'] == 0:
-        temp_failed.append("When testing the JSON output of your code with a  local authority code, and various measures, we were still expecting an empty JSON object (i.e., {})")
+        temp_failed.append("When testing the JSON output of your code with a local authority code, and various measures, we were still expecting an empty JSON object (i.e., {})")
       else:
-        temp_passed.append("When testing the JSON output of your code with a  local authority code, and various measures, we still received an empty JSON object (i.e., {}), as expected")
+        temp_passed.append("When testing the JSON output of your code with a local authority code, and various measures, we still received an empty JSON object (i.e., {}), as expected")
 
       if autograder_marks['Extended output tests - Unseen output 2: bethyw -a swan -m RAIL'] == 0:
         temp_failed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code didn't seem to return the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
@@ -1265,12 +1265,12 @@ class coursework:
 
 
 
-  def code_style(student_id, marks, feedback): # max -6
+  def code_style(student_id, marks, feedback): # max -12
     multidecision = [
         {
-         "messy1":    ("Indentation is very messy",                                                            -1, "Your use of indentation seems somewhat inconsistent and messy. "),
-         "messy2":    ("Indentation is a little messy/mostly OK",                                             -.5, "Your use of indentation seems occasionally inconsistent and messy. "),
-         "messy3":    ("Indentation is perfect",                                                                0, "Your use of indentation is consistent. "),
+         "messy1":    ("Indentation/code style is very messy or inconsistent",                                 -2, "Your use of indentation and general code style seems somewhat inconsistent and messy. "),
+         "messy2":    ("Indentation/code style is a little messy/mostly OK",                                   -1, "Your use of indentation and general code style seems occasionally inconsistent and messy. "),
+         "messy3":    ("Indentation is perfect",                                                                0, "Your use of indentation and general code style is consistent. "),
         },
 
         {
@@ -1289,11 +1289,23 @@ class coursework:
         },
         
         {
-         "const5":    ("No use of the const keyword with variables",                                           -2, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const4":    ("Little use of the const keyword with variables",                                       -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const3":    ("Could have used more instances of the const keyword with variables",                 -1.5, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice. "),
-         "const1":    ("Perfect use of the const keyword for variables",                                        0, "In terms of using const for non-modifiable variables and references, you've used this very well. "),
+         "const5":    ("No use of the const keyword with variables",                                           -2, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
+         "const4":    ("Little use of the const keyword with variables",                                       -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
+         "const3":    ("Could have used more instances of the const keyword with variables",                 -1.5, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
+         "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
+         "const1":    ("Perfect use of the const keyword for variables",                                        0, "In terms of using const for non-modifiable variables and references, you've used this very well.\n\n"),
+        },
+        
+        {
+         "nd3":       ("Missing delete/delete [] in more than one place",                                      -3, "There are a few places where you should have used delete/delete [] to ensure you have deallocated memory on the heap that you allocated with the new/new [] keywords. We covered this quite a few times in lectures that with C and C++, memory management is still the responsibility of the developer."),
+         "nd2":       ("Missing delete/delete [] with InputSource",                                            -2, "It seems your InputSource/InputFile instances don't get destructed because although you allocated memory for them with the new keyword, you did not deallocate them with the keyword delete."),
+         "nd1":       ("No use of new/delete",                                                                  0, ""),
+         "nd0":       ("delete/delete []'d everything they have new/new []'d",                                  0, "You used the new/new [] keywords in your code to allocate data on the heap, but also used the delete/delete [] keywords to free this memory. Great work!"),
+        },
+        
+        {
+         "div1":      ("Measure::getAverage/Difference/DifferenceAsPercentage() susceptible to div/0",         -2, "\n\nIn your implementation of the statistics functions in the Measure class, your code seems to be susceptible to a division by 0 error, which would have crashed your application. You should make sure you are not dividing by zero ever in code. This is a runtime error and hard to catch, but a common source of issues."),
+         "div0":      ("Measure::getAverage/Difference/DifferenceAsPercentage() protected against size() = 0",   0, "")
         },
       ]
 
@@ -1431,7 +1443,7 @@ class coursework:
 
 
 
-  def code_efficiency(student_id, marks, feedback): # max -19
+  def code_efficiency(student_id, marks, feedback): # max -19 -14
     multidecision = [
         {
          "ref4":      ("Little to no use of pass-by-reference",                                                -2, "CODE EFFICIENCY\nYou didn't really use much pass-by-reference in your code, which means data ends up being needlessly copied around in your code. In future, think about whether a function needs a copy of a variable, or can rely upon a reference to the original variable.\n\n"),
@@ -1448,14 +1460,24 @@ class coursework:
         },
 
         {
-         "overall8":  (" 0/14, this is a very poor coursework (quality, not completeness)",                   -14, "SUMMARY\nOverall, there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall7":  (" 2/14, this is a poor coursework (quality, not completeness)",                        -12, "SUMMARY\nOverall, this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall6":  (" 4/14, this is a OK coursework (quality, not completeness)",                          -10, "SUMMARY\nOverall, this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
-         "overall5":  (" 6/14, this is a good coursework (quality, not completeness)",                         -8, "SUMMARY\nOverall, this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall4":  (" 8/14, this is a very good coursework (quality, not completeness)",                    -6, "SUMMARY\nOverall, this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall3":  ("10/14, this is a great coursework (quality, not completeness)",                        -4, "SUMMARY\nOverall, this is an excellent coursework. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall2":  ("12/14, this is a excellent coursework (quality, not completeness)",                    -2, "SUMMARY\nOverall, this is an excellent coursework. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall1":  ("14/14: this is a perfect coursework (quality, not completeness)",                       0, "SUMMARY\nOverall, this is an perfect coursework. You have produced some great code. Well done!")
+         "attempt0":  ("Attempted nothing",                                                                    -2, "SUMMARY\nSadly, you attempted very little of this coursework and "),
+         "attempt1":  ("Attempted some things (and did not so well)",                                          -1, "SUMMARY\nAlthough you only attempted some of the tasks in this coursework, "),
+         "attempt2":  ("Attempted some things (and did well)",                                                  0, "SUMMARY\nYou only attempted some of the tasks in this courserwork but "),
+         "attempt3":  ("Attempted most things (and did not so well)",                                         -.5, "SUMMARY\nAlthough you attempted most of the tasks in this coursework, "),
+         "attempt4":  ("Attempted most things (and did well)",                                                  0, "SUMMARY\nYou attempted most of the tasks in this coursework and "),
+         "attempt5":  ("Attempted everything (and did not so well)",                                          -.5, "SUMMARY\nAlthough You attempted everything in this coursework, "),
+         "attempt6":  ("Attempted everything (and did well)",                                                   0, "SUMMARY\nYou attempted everything in this coursework and "),
+        },
+        
+        {
+         "overall8":  ("0/7, this is a very poor coursework (quality, not completeness)",                      -7, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall7":  ("1/7, this is a poor coursework (quality, not completeness)",                           -6, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall6":  ("2/7, this is a OK coursework (quality, not completeness)",                             -5, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
+         "overall5":  ("3/7, this is a good coursework (quality, not completeness)",                           -4, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall4":  ("4/7, this is a very good coursework (quality, not completeness)",                      -3, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall3":  ("5/7, this is a great coursework (quality, not completeness)",                          -2, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall2":  ("6/7, this is a excellent coursework (quality, not completeness)",                      -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall1":  ("7/7: this is a perfect coursework (quality, not completeness)",                         0, "this is a perfect coursework solution. You have produced some great code. Well done!")
         }
       ]
 
