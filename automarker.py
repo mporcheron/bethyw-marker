@@ -48,6 +48,7 @@ class marker:
     self.progress["readme"]                  = stage("Read the student's README",                                  coursework.readme)
     self.progress["opensrc"]                 = stage("Begin reading through the student's code",                   coursework.opensrc)
     self.progress["negative_marking_switch"] = stage("Swap to negative marking from here on in",                   coursework.negative_marking_switch)
+    self.progress["tables_output"]           = stage("Check the tables output for style",                          coursework.tables_output)
     self.progress["memtest"]                 = stage("Run the coursework with Valgrind",                           coursework.memtest)
     self.progress["input_source"]            = stage("Check InputSource and InputFile have virtual functions",     coursework.input_source)
     self.progress["function_ordering"]       = stage("Check that they have retained the ordering of functions",    coursework.function_ordering)
@@ -891,9 +892,78 @@ class coursework:
   def negative_marking_switch(student_id, marks, feedback):
       return stage_result(
           updated_label    = "Added 40 marks, remaining parts are negative marked...",
-          next_stage       = "memtest",
+          next_stage       = "tables_output",
           student_marks    = 40)
 
+
+  def tables_output(student_id, marks, feedback): # max: -2 marks
+    cmd = [coursework.GPP_COMMAND,
+           "--std=c++14",
+           "bethyw.cpp",
+           "input.cpp",
+           "areas.cpp",
+           "area.cpp",
+           "measure.cpp",
+           "main.cpp",
+           "-o",
+           "./bin/bethyw"]
+    res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
+
+    if res.returncode == 0:
+      cmd = ["./bin/bethyw",
+             "popden",
+             "-m",
+             "area",
+             "-y",
+             "1992-1995"]
+      res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
+    
+      stdout = res.stdout.decode("utf-8")
+      stderr = res.stderr.decode("utf-8")
+
+      if res.returncode == 0 and stderr == "":
+        multidecision = [
+            {
+             "out3":      ("Output is very messy",                    -2, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is a messy. You were given sample outputs and it was also explained that this should be human-readable, formatted in a table-like manner where all the values were aligned. "),
+             "out2":      ("Output is messy",                         -1, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is a bit messy, and could have been clearer. "),
+             "out1":      ("Output is not quite perfect",              0, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is neat and readable. "),
+             "out0":      ("Output is perfect",                        0, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is very neat and readable. ")
+            },
+            {
+             "stats1":    ("Statistics NOT included",                  0, "You did not include the required statistics in your output. "),
+             "stats0":    ("Statistics included",                      0, "You did included the required statistics in your output, which is great. ")
+            },
+            {
+             "nomeas2":   ("Areas with no data missing",               0, "When an area has no measures or data, I was expecting something like <no measures> or <no data> to be printed to signify this.\n\n"),
+             "nomeas1":   ("Areas with no data messy",                 0, "When an area has no measures, I was expecting something like <no measures> or <no data> to be printed to signify this, and for this to be clear to the user.\n\n"),
+             "nomeas0":   ("Areas with no data fine",                  0, "You did include areas which had no data given the current filters, clearly denoting this.\n\n")
+            },
+        ]
+        
+        return stage_result(
+          updated_label    = "Sample tables output generated",
+          view_text        = ("Output from ./bin/bethyw -d popden -m area -y 1992-1995", stdout),
+          decision         = multidecision,
+          next_stage       = "memtest")
+
+    return stage_result(
+      updated_label    = "Couldn't compile and run coursework with tables table",
+      next_stage       = "memtest",
+      student_marks    = -2)
+        
+
+    if not os.path.isfile(coursework.TEST_SRC_DIR + "/README.md"):
+      return stage_result(
+        updated_label = "Tables output checked",
+        next_stage    = "memtest")
+
+    with open(coursework.TEST_SRC_DIR + "/README.md", "r") as f:
+      contents = f.read()
+
+    return stage_result(
+      updated_label = "README.md included and opened",
+      view_text     = ("README.md", contents),
+      next_stage    = "memtest")
 
 
   def memtest(student_id, marks, feedback): # max: 0 marks
@@ -1470,14 +1540,14 @@ class coursework:
         },
         
         {
-         "overall8":  ("0/7, this is a very poor coursework (quality, not completeness)",                      -7, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall7":  ("1/7, this is a poor coursework (quality, not completeness)",                           -6, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall6":  ("2/7, this is a OK coursework (quality, not completeness)",                             -5, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
-         "overall5":  ("3/7, this is a good coursework (quality, not completeness)",                           -4, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall4":  ("4/7, this is a very good coursework (quality, not completeness)",                      -3, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall3":  ("5/7, this is a great coursework (quality, not completeness)",                          -2, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall2":  ("6/7, this is a excellent coursework (quality, not completeness)",                      -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall1":  ("7/7: this is a perfect coursework (quality, not completeness)",                         0, "this is a perfect coursework solution. You have produced some great code. Well done!")
+         "overall8":  ("  0/5, this is a very poor coursework (quality, not completeness)",                   -5, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall7":  ("0.5/5, this is a poor coursework (quality, not completeness)",                      -4.5, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall6":  ("  1/5, this is a OK coursework (quality, not completeness)",                          -4, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
+         "overall5":  ("  2/5, this is a good coursework (quality, not completeness)",                        -3, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall4":  ("  3/5, this is a very good coursework (quality, not completeness)",                   -2, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall3":  ("  4/5, this is a great coursework (quality, not completeness)",                       -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall2":  ("4.5/5, this is a excellent coursework (quality, not completeness)",                 -0.5, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall1":  ("  5/5: this is a perfect coursework (quality, not completeness)",                      0, "this is a perfect coursework solution. You have produced some great code. Well done!")
         }
       ]
 
