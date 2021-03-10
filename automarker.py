@@ -44,8 +44,8 @@ class marker:
 
     self.progress = collections.OrderedDict()
     self.progress["setup"]                   = stage("Copy student's submission into temporary marking directory", coursework.setup)
-    self.progress["autograder"]              = stage("Parse autograder output",                                    coursework.autograder)
     self.progress["readme"]                  = stage("Read the student's README",                                  coursework.readme)
+    self.progress["autograder"]              = stage("Parse autograder output",                                    coursework.autograder)
     self.progress["opensrc"]                 = stage("Begin reading through the student's code",                   coursework.opensrc)
     self.progress["negative_marking_switch"] = stage("Swap to negative marking from here on in",                   coursework.negative_marking_switch)
     self.progress["tables_output"]           = stage("Check the tables output for style",                          coursework.tables_output)
@@ -57,7 +57,7 @@ class marker:
     self.progress["code_style"]              = stage("Evaluate the coding style",                                  coursework.code_style)
     self.progress["exceptions"]              = stage("Check their exception handling",                             coursework.exceptions)
     self.progress["code_efficiency"]         = stage("Evaluate the coding style",                                  coursework.code_efficiency)
-    #self.progress["feedback"]         = stage("Modify the feedback",                                        coursework.feedback)
+    self.progress["feedback"]                = stage("Modify the feedback",                                        coursework.feedback)
 
     self.current_stage = "setup"
 
@@ -533,8 +533,24 @@ class coursework:
 
     return stage_result(
       updated_label = "Student files successfully copied into temporary marking directory",
+      next_stage    = "readme")
+
+
+  def readme(student_id, marks, feedback):
+    if not os.path.isfile(coursework.TEST_SRC_DIR + "/README.md"):
+      return stage_result(
+        updated_label = "No README.md included",
+        next_stage    = "autograder")
+
+    with open(coursework.TEST_SRC_DIR + "/README.md", "r") as f:
+      contents = f.read()
+
+    return stage_result(
+      updated_label = "README.md included and opened",
+      view_text     = ("README.md", contents),
       next_stage    = "autograder")
 
+        
 
   def autograder(student_id, marks, feedback):
     if not os.path.isfile(marker.AUTOGRADER_FILE):
@@ -680,6 +696,7 @@ class coursework:
         feedback += '  - ' + temp + '\n'
       feedback += '\n'
 
+      feedback = "PROGRAM UNIT TESTS\n"
       # Catch2 tests
       if autograder_marks['Provided Catch2 unit tests Total'] == 0:
         feedback += "It seems your code failed to pass any of the provided Catch2 tests. You were advised to make sure you passed these tests. "
@@ -857,27 +874,11 @@ class coursework:
         updated_label    = "Autograder marks imported and feedback generated",
         student_feedback = feedback,
         student_marks    = autograder_marks['Total Points'],
-        next_stage       = "readme")
+        next_stage       = "opensrc")
     except KeyError as e:
       return stage_result(
         updated_label = "Error with autograder import:" + str(e),
         next_stage    = None)
-
-
-  def readme(student_id, marks, feedback):
-    if not os.path.isfile(coursework.TEST_SRC_DIR + "/README.md"):
-      return stage_result(
-        updated_label = "No README.md included",
-        next_stage    = "opensrc")
-
-    with open(coursework.TEST_SRC_DIR + "/README.md", "r") as f:
-      contents = f.read()
-
-    return stage_result(
-      updated_label = "README.md included and opened",
-      view_text     = ("README.md", contents),
-      next_stage    = "opensrc")
-
 
 
   def opensrc(student_id, marks, feedback):
@@ -1277,8 +1278,10 @@ class coursework:
         'no previous declaration for':            (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "We asked you to always declare functions in header files before implementing them, but it seems you didn't always manage this, as in __ with the free function __.", ['no declaration matches']),
         'no declaration matches':                 (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "It seems that the although you provided an implementation in __ for the function __, there isn't a matching declaration of it?. We asked to you make sure you always included declarations for your functions in the appropriate header files.", ['no previous declaration for']),
 
-        'shadows a parameter':                    (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope or as a parameter (as in this case). The first place we spotted this was in __ on line __ with the __.", ['shadows a local']),
-        'shadows a local':                        (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place we spotted this was in __ on line __ with the __.", ['shadows a parameter']),
+        'shadows a parameter':                    (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope or as a parameter (as in this case). The first place we spotted this was in __ on line __ with the __.", ['shadows a local', 'shadows a previous local', 'shadows a member']),
+        'shadows a local':                        (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place we spotted this was in __ on line __ with the __.", ['shadows a member', 'shadows a previous local', 'shadows a parameter']),
+        'shadows a previous local':               (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place we spotted this was in __ on line __ with the __.", ['shadows a member', 'shadows a local', 'shadows a parameter']),
+        'shadows a member':                       (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a meber variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (a member variable in this case) or where you declare a variable with the same name as a parameter. The first place we spotted this was in __ on line __ with the __.", ['shadows a local', 'shadows a previous local', 'shadows a parameter']),
 
         'switch missing default case':            (.5, 2, r'([a-zA-Z.]*):([0-9]+)',            "You seem to have a switch statement in __ on __ that doesn't have a default value. This may be OK in this case, but typically one would be expected (e.g. to catch unexpected values).")
       }
@@ -1309,7 +1312,7 @@ class coursework:
               else:
                 pass
 
-      marks_subtraction = max(5, marks_subtraction)
+      marks_subtraction = max(-5, marks_subtraction)
 
       if len(feedback_list) == 0:
         return stage_result(
@@ -1327,11 +1330,11 @@ class coursework:
           feedback += '  ' + str(i+1) + ". " + feedback_item + "\n"
 
       return stage_result(
-        updated_label    = "Deducted %f marks for warnings" % marks_subtraction,
+        updated_label    = "Deducted %f marks for warnings" % (-marks_subtraction),
         details          = stderr,
         next_stage       = "code_style",
         student_feedback = feedback + "\n",
-        student_marks    = -marks_subtraction)
+        student_marks    = marks_subtraction)
 
 
 
@@ -1554,5 +1557,13 @@ class coursework:
     return stage_result(
       updated_label = "Marking finished",
       decision      = multidecision,
+      next_stage    = "feedback")
+
+
+  def feedback(student_id, marks, feedback):
+    cmd = coursework.CMD_OPEN_CODE + [coursework.MARKS_DIR + "/" + student_id + "-feedback.txt"]
+    res = subprocess.run(cmd)
+    return stage_result(
+      updated_label = "Marking finished",
       next_stage    = None)
 
