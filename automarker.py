@@ -921,7 +921,7 @@ class coursework:
       if res.returncode == 0 and stderr == "":
         multidecision = [
             {
-             "out4":      ("Output is very messy",                    -2, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting doesn't seem right. Perhaps something went wrong somewhere? For this we loked at the 'popden' and compared it to what we expected."),
+             "out4":      ("Output is wrong",                         -2, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting doesn't seem right. Perhaps something went wrong somewhere? For this we loked at the 'popden' and compared it to what we expected."),
              "out3":      ("Output is very messy",                    -2, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is a messy. You were given sample outputs and it was also explained that this should be human-readable, formatted in a table-like manner where all the values were aligned. "),
              "out2":      ("Output is messy",                         -1, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is a bit messy, and could have been clearer. "),
              "out1":      ("Output is not quite perfect",              0, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is neat and readable. "),
@@ -1337,7 +1337,7 @@ class coursework:
 
 
 
-  def code_style(student_id, marks, feedback): # max -14
+  def code_style(student_id, marks, feedback): # max -16
     multidecision = [
         {
          "messy1":    ("Indentation/code style is very messy or inconsistent",                                 -2, "Your use of indentation and general code style seems somewhat inconsistent and messy. "),
@@ -1375,9 +1375,8 @@ class coursework:
         },
         
         {
-         "if4":       ("InputFile/InputSource don't get destructed",                                           -1, "It seems your InputSource/InputFile instances don't get destructed because although you allocated memory for them with the new keyword, you did not deallocate them with the keyword delete."),
-         "if3":       ("Missing delete/delete [] with stream in InputFile",                                    -1, "It seems your InputSource/InputFile instances store a pointer but its not clear where this is deleted. Remember, whenever we new, we must delete. This is also complicated by exceptions, which side step the normal flow of execution.  You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this. "),
-         "if2":       ("Maybe issue with delete with InputFile with exceptions",                               -1, "It seems your InputSource/InputFile instances store a pointer that gets deleted in the destructor, although its not clear if this would get cleaned up if an exception was thrown in your code. You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this."),
+         "if3":       ("Missing delete/delete [] with stream in InputFile",                                    -2, "It seems your InputSource/InputFile instances store a pointer but its not clear where this is deleted. Remember, whenever we new, we must delete. This is also complicated by exceptions, which side step the normal flow of execution.  You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this. "),
+         "if2":       ("delete with stream in InputFile, but what about exceptions?",                          -1, "It seems your InputSource/InputFile instances store a pointer that gets deleted in the destructor, although its not clear if this would get cleaned up if an exception was thrown in your code. You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this."),
          "if1":       ("Use of std::unique_ptr or equivalent in InputFile",                                     0, "You have used a Standard Library RAII function, which is excellent practice and demonstrates great engagement with the topics discussed in lectures. Great work!"),
          "if0":       ("Stored the stream as a member variable",                                                0, "You have avoided using new/delete inside InputFile, which given we want to avoid this as much as possible, is good practice to keep up."),
         },
@@ -1388,8 +1387,8 @@ class coursework:
         },
         
         {
-         "pop2":      ("No populate functions handle nullptr",                                                 -1, "\n\nYour populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
-         "pop1":      ("Some populate functions handle nullptr",                                             -0.5, "\n\nIn seems some your populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them.")
+         "pop2":      ("No populate functions handle nullptr",                                                 -2, "\n\nYour populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
+         "pop1":      ("Some populate functions handle nullptr",                                               -1, "\n\nIn seems some your populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
          "pop0":      ("All populate functions handle nullptr",                                                 0, "\n\nYour populate…() functions in areas.cpp are checking for nullptr on the filter arguments! This was an area where it was incredibly easy to forget to do this.")
         },
       ]
@@ -1401,7 +1400,7 @@ class coursework:
 
 
 
-  def exceptions(student_id, marks, feedback): # max -6
+  def exceptions(student_id, marks, feedback): # max -4
     # Wildcard catch test
     files = ["bethyw.cpp",
              "bethyw.h",
@@ -1478,22 +1477,17 @@ class coursework:
                 num_ref += 1
     
     if num_const == num_exceptions:
-      feedback += "You consistently used const when when catching exceptions, which is good practice that we covered in lectures. "
+      feedback += "You consistently used const when catching exceptions, which is good practice that we covered in lectures. "
     elif num_const == 0:
-      feedback += "When catching exceptions, you never caught your exception objects as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
-      marks += -2
+      feedback += "When catching exceptions, you never caught your exception objects as const, which we covered in lectures as something you should be doing (no marks were deducted for this). An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
     elif num_const/num_exceptions > .75:
-      feedback += "When catching exceptions, you caught nearly all of your exception objects as const, although you missed the const keyword a few times. "
-      marks += -1.25
+      feedback += "When catching exceptions, you caught nearly all of your exception objects as const, although you missed the const keyword a few times (no marks were deducted for this). "
     elif num_const/num_exceptions > .5:
-      feedback += "When catching exceptions, you caught most of your exception objects as const, which we covered in lectures as something you should be doing. "
-      marks += -1.5
+      feedback += "When catching exceptions, you caught most of your exception objects as const, which we covered in lectures as something you should be doing (no marks were deducted for this). "
     elif num_const/num_exceptions > .25:
-      feedback += "When catching exceptions, most of your exception objects weren't caught as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
-      marks += -1.75
+      feedback += "When catching exceptions, most of your exception objects weren't caught as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword (no marks were deducted for this in this case). "
     else:
-      feedback += "When catching exceptions, the majority of your exception objects weren't caught as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword. "
-      marks += -2
+      feedback += "When catching exceptions, the majority of your exception objects weren't caught as const, which we covered in lectures as something you should be doing. An exception should not be changed once it has been thrown, thus we should always catch them using the const keyword (no marks were deducted for this in this case). "
 
     if num_ref == num_exceptions:
       feedback += "You did catch them all as references, which means you avoided copies of the exception objects being made when they are thrown. "
