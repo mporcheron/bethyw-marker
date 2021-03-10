@@ -912,11 +912,7 @@ class coursework:
 
     if res.returncode == 0:
       cmd = ["./bin/bethyw",
-             "popden",
-             "-m",
-             "area",
-             "-y",
-             "1992-1995"]
+             "popden"]
       res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
     
       stdout = res.stdout.decode("utf-8")
@@ -925,19 +921,22 @@ class coursework:
       if res.returncode == 0 and stderr == "":
         multidecision = [
             {
+             "out4":      ("Output is very messy",                    -2, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting doesn't seem right. Perhaps something went wrong somewhere? For this we loked at the 'popden' and compared it to what we expected."),
              "out3":      ("Output is very messy",                    -2, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is a messy. You were given sample outputs and it was also explained that this should be human-readable, formatted in a table-like manner where all the values were aligned. "),
              "out2":      ("Output is messy",                         -1, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is a bit messy, and could have been clearer. "),
              "out1":      ("Output is not quite perfect",              0, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is neat and readable. "),
              "out0":      ("Output is perfect",                        0, "FORMATTED 'TABLES' OUTPUT\nYour output for the tables formatting is very neat and readable. ")
             },
             {
+             "stats2":    ("<skip stats point>",                       0, ""),
              "stats1":    ("Statistics NOT included",                  0, "You did not include the required statistics in your output. "),
              "stats0":    ("Statistics included",                      0, "You did included the required statistics in your output, which is great. ")
             },
             {
-             "nomeas2":   ("Areas with no data missing",               0, "When an area has no measures or data, I was expecting something like <no measures> or <no data> to be printed to signify this.\n\n"),
-             "nomeas1":   ("Areas with no data messy",                 0, "When an area has no measures, I was expecting something like <no measures> or <no data> to be printed to signify this, and for this to be clear to the user.\n\n"),
-             "nomeas0":   ("Areas with no data fine",                  0, "You did include areas which had no data given the current filters, clearly denoting this.\n\n")
+             "noareas3":  ("<skip areas with no data point>",          0, ""),
+             "noareas2":  ("Areas with no data missing",               0, "When an area has no measures or data, I was expecting something like <no measures> or <no data> to be printed to signify this.\n\n"),
+             "noareas1":  ("Areas with no data messy",                 0, "When an area has no measures, I was expecting something like <no measures> or <no data> to be printed to signify this, and for this to be clear to the user.\n\n"),
+             "noareas0":  ("Areas with no data fine",                  0, "You did include areas which had no data given the current filters, clearly denoting this.\n\n")
             },
         ]
         
@@ -1338,7 +1337,7 @@ class coursework:
 
 
 
-  def code_style(student_id, marks, feedback): # max -12
+  def code_style(student_id, marks, feedback): # max -14
     multidecision = [
         {
          "messy1":    ("Indentation/code style is very messy or inconsistent",                                 -2, "Your use of indentation and general code style seems somewhat inconsistent and messy. "),
@@ -1370,15 +1369,28 @@ class coursework:
         },
         
         {
-         "nd3":       ("Missing delete/delete [] in more than one place",                                      -3, "There are a few places where you should have used delete/delete [] to ensure you have deallocated memory on the heap that you allocated with the new/new [] keywords. We covered this quite a few times in lectures that with C and C++, memory management is still the responsibility of the developer."),
-         "nd2":       ("Missing delete/delete [] with InputSource",                                            -2, "It seems your InputSource/InputFile instances don't get destructed because although you allocated memory for them with the new keyword, you did not deallocate them with the keyword delete."),
-         "nd1":       ("No use of new/delete",                                                                  0, ""),
-         "nd0":       ("delete/delete []'d everything they have new/new []'d",                                  0, "You used the new/new [] keywords in your code to allocate data on the heap, but also used the delete/delete [] keywords to free this memory. Great work!"),
+         "nd2":       ("Missing delete/delete [] for a new/new []",                                            -2, "There are a few places where you should have used delete/delete [] to ensure you have deallocated memory on the heap that you allocated with the new/new [] keywords. We covered this quite a few times in lectures that with C and C++, memory management is still the responsibility of the developer. "),
+         "nd0":       ("delete/delete []'d everything they have new/new []'d",                               -0.5, "You used the new/new [] keywords in your code to allocate data on the heap, but also used the delete/delete [] keywords to free this memory. This is good, although generally speaking we should try to avoid newing and deleting as much as possible. "),
+         "nd1":       ("No use of new/delete",                                                                  0, "You haven't used new/delete anywhere, which is great. As we covered in lectures, this introduces challenges, e.g., when we start to also mix in things like exceptions which sidestep the typical flow of execution. "),
+        },
+        
+        {
+         "if4":       ("InputFile/InputSource don't get destructed",                                           -1, "It seems your InputSource/InputFile instances don't get destructed because although you allocated memory for them with the new keyword, you did not deallocate them with the keyword delete."),
+         "if3":       ("Missing delete/delete [] with stream in InputFile",                                    -1, "It seems your InputSource/InputFile instances store a pointer but its not clear where this is deleted. Remember, whenever we new, we must delete. This is also complicated by exceptions, which side step the normal flow of execution.  You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this. "),
+         "if2":       ("Maybe issue with delete with InputFile with exceptions",                               -1, "It seems your InputSource/InputFile instances store a pointer that gets deleted in the destructor, although its not clear if this would get cleaned up if an exception was thrown in your code. You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this."),
+         "if1":       ("Use of std::unique_ptr or equivalent in InputFile",                                     0, "You have used a Standard Library RAII function, which is excellent practice and demonstrates great engagement with the topics discussed in lectures. Great work!"),
+         "if0":       ("Stored the stream as a member variable",                                                0, "You have avoided using new/delete inside InputFile, which given we want to avoid this as much as possible, is good practice to keep up."),
         },
         
         {
          "div1":      ("Measure::getAverage/Difference/DifferenceAsPercentage() susceptible to div/0",         -2, "\n\nIn your implementation of the statistics functions in the Measure class, your code seems to be susceptible to a division by 0 error, which would have crashed your application. You should make sure you are not dividing by zero ever in code. This is a runtime error and hard to catch, but a common source of issues."),
-         "div0":      ("Measure::getAverage/Difference/DifferenceAsPercentage() protected against size() = 0",   0, "")
+         "div0":      ("Measure::getAverage/Difference/DifferenceAsPercentage() protected against size() = 0",  0, "")
+        },
+        
+        {
+         "pop2":      ("No populate functions handle nullptr",                                                 -1, "\n\nYour populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
+         "pop1":      ("Some populate functions handle nullptr",                                             -0.5, "\n\nIn seems some your populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them.")
+         "pop0":      ("All populate functions handle nullptr",                                                 0, "\n\nYour populate…() functions in areas.cpp are checking for nullptr on the filter arguments! This was an area where it was incredibly easy to forget to do this.")
         },
       ]
 
@@ -1516,7 +1528,7 @@ class coursework:
 
 
 
-  def code_efficiency(student_id, marks, feedback): # max -19 -14
+  def code_efficiency(student_id, marks, feedback): # max -13
     multidecision = [
         {
          "ref4":      ("Little to no use of pass-by-reference",                                                -2, "CODE EFFICIENCY\nYou didn't really use much pass-by-reference in your code, which means data ends up being needlessly copied around in your code. In future, think about whether a function needs a copy of a variable, or can rely upon a reference to the original variable.\n\n"),
@@ -1543,14 +1555,14 @@ class coursework:
         },
         
         {
-         "overall8":  ("  0/5, this is a very poor coursework (quality, not completeness)",                   -5, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall7":  ("0.5/5, this is a poor coursework (quality, not completeness)",                      -4.5, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall6":  ("  1/5, this is a OK coursework (quality, not completeness)",                          -4, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
-         "overall5":  ("  2/5, this is a good coursework (quality, not completeness)",                        -3, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall4":  ("  3/5, this is a very good coursework (quality, not completeness)",                   -2, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall3":  ("  4/5, this is a great coursework (quality, not completeness)",                       -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall2":  ("4.5/5, this is a excellent coursework (quality, not completeness)",                 -0.5, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall1":  ("  5/5: this is a perfect coursework (quality, not completeness)",                      0, "this is a perfect coursework solution. You have produced some great code. Well done!")
+         "overall8":  ("  0/4, this is a very poor coursework (quality, not completeness)",                   -4, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall7":  ("  1/4, this is a poor coursework (quality, not completeness)",                        -3, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall6":  (" 1.5/4, this is a OK coursework (quality, not completeness)",                       -2.5, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
+         "overall5":  ("  2/4, this is a good coursework (quality, not completeness)",                        -2, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall4":  ("2.5/4, this is a very good coursework (quality, not completeness)",                 -1.5, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall3":  ("  3/4, this is a great coursework (quality, not completeness)",                       -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall2":  ("3.5/4, this is a excellent coursework (quality, not completeness)",                 -0.5, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall1":  ("  4/4: this is a perfect coursework (quality, not completeness)",                      0, "this is a perfect coursework solution. You have produced some great code. Well done!")
         }
       ]
 

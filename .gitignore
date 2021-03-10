@@ -131,3 +131,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+result/
+_bin/*
+marks/*
+submissions_all/*
+submissions/*

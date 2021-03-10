@@ -65,34 +65,33 @@ total_points = 0
 for catch2_test in iter(catch2_tests):
   catch2_results[catch2_test] = 0
 
-# for catch2_test in iter(catch2_tests):
-#   print("Compiling " + catch2_test)
-#   compile_result = __unittest_compile(catch2_test)
-#
-#   if compile_result is not True:
-#     with open("./_marks/manualtest-" + student_id + '-catch2-' + catch2_test +'.txt', 'w') as file:
-#       file.write("Could not compile:\n" + compile_result)
-#     continue
-#
-#   print("Running " + catch2_test)
-#   cmd = ["./bethyw-" + catch2_test, "-r", "xml"]
-#   res = subprocess.run(cmd, cwd=os.getcwd() + "/_tempsrc", capture_output=True)
-#
-#   catch2xml  = res.stdout.decode("utf-8")
-#   with open("./_marks/manualtest-" + student_id + '-catch2-' + catch2_test +'.xml', 'w') as file:
-#     file.write(catch2xml)
-#
-#   # Parse Catch2 unit tests outcomes
-#   try:
-#     root = ET.XML(catch2xml)
-#     for overall_result in root.iter("OverallResults"):
-#       if overall_result.get("failures") == "0":
-#         catch2_results[catch2_test] = catch2_tests[catch2_test]
-#         total_points += catch2_tests[catch2_test]
-#       break
-#   except ET.ParseError:
-#     print("Error with " + catch2_test)
+for catch2_test in iter(catch2_tests):
+  print("Compiling " + catch2_test)
+  compile_result = __unittest_compile(catch2_test)
 
+  if compile_result is not True:
+    with open("./_marks/manualtest-" + student_id + '-catch2-' + catch2_test +'.txt', 'w') as file:
+      file.write("Could not compile:\n" + compile_result)
+    continue
+
+  print("Running " + catch2_test)
+  cmd = ["./bethyw-" + catch2_test, "-r", "xml"]
+  res = subprocess.run(cmd, cwd=os.getcwd() + "/_tempsrc", capture_output=True)
+
+  catch2xml  = res.stdout.decode("utf-8")
+  with open("./_marks/manualtest-" + student_id + '-catch2-' + catch2_test +'.xml', 'w') as file:
+    file.write(catch2xml)
+
+  # Parse Catch2 unit tests outcomes
+  try:
+    root = ET.XML(catch2xml)
+    for overall_result in root.iter("OverallResults"):
+      if overall_result.get("failures") == "0":
+        catch2_results[catch2_test] = catch2_tests[catch2_test]
+        total_points += catch2_tests[catch2_test]
+      break
+  except ET.ParseError:
+    print("Error with " + catch2_test)
 
 output_tests = {
   "nowarnings"     : (2, []),
