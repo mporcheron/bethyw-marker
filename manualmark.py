@@ -11,6 +11,8 @@ import xml.etree.ElementTree as ET
 
 student_id = sys.argv[1]
 
+
+
 def __unittest_compile(unittest):
   cmd = ["g++",
          "--std=c++14",
@@ -61,9 +63,11 @@ catch2_tests = {
 catch2_results = {}
 failed_tests = {}
 total_points = 0
+total_points_possible = 0
 
 for catch2_test in iter(catch2_tests):
   catch2_results[catch2_test] = 0
+  total_points_possible += catch2_tests[catch2_test]
 
 for catch2_test in iter(catch2_tests):
   print("Compiling " + catch2_test)
@@ -93,6 +97,9 @@ for catch2_test in iter(catch2_tests):
   except ET.ParseError:
     print("Error with " + catch2_test)
 
+
+
+
 output_tests = {
   "nowarnings"     : (2, []),
   "output1.txt"    : (1, ["-d", "invalidataset"]),
@@ -118,6 +125,7 @@ output_results = {}
 print("Compiling application")
 for output_test in iter(output_tests):
   output_results[output_test] = 0
+  total_points_possible += output_tests[output_test][0]
 
 cmd = ["g++",
        "--std=c++14",
@@ -138,8 +146,8 @@ if res.returncode != 0:
   exit()
 
 if res.stdout.decode("utf-8") == "":
-  output_results["nowarnings"] = 2
-  total_points += 2
+  output_results["nowarnings"] = output_tests["nowarnings"][0]
+  total_points += output_tests["nowarnings"][0]
 
 whitespace_pattern = re.compile(r'\s+')
 for output_test in iter(output_tests):
@@ -189,7 +197,7 @@ with open(os.getcwd() + "/_marks/autograder.csv", "a") as markscsv:
   markscsv.write(str(total_points) + ",")
 
   # Total Points Possible
-  markscsv.write(str(60) + ",")
+  markscsv.write(str(total_points_possible) + ",")
 
   # Handgrading Total Points
   markscsv.write("" + ",")
