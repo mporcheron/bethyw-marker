@@ -161,6 +161,8 @@ class marker:
 
 
   def setup_decision(self, decision):
+    self.refresh_body()
+
     start_y = 10
     start_x = 10
     height  = len(decision) + 5
@@ -244,6 +246,8 @@ class marker:
 
 
   def refresh_decision(self, decision, selected_option):
+    self.refresh_body()
+
     for i, option in enumerate(decision):
       text = "["
       text += "X" if selected_option == i else " "
@@ -279,6 +283,7 @@ class marker:
     title = " " + title + " (enter to close) "
     self.win_viewtext.addstr(0, int((width - len(title)) / 2), title, colour | curses.A_BOLD)
 
+    self.refresh_body()
     self.win_viewtext.refresh()
     curses.doupdate()
 
@@ -325,7 +330,7 @@ class marker:
     self.refresh_viewtext(formatted_contents_by_line, 0, is_error)
 
 
-  def refresh_viewtext(self, contents_by_line, current_starting_line = 0, is_error=False):
+  def refresh_viewtext(self, contents_by_line, current_starting_line = 0, is_error=False):  
     colour = curses.color_pair(1) if is_error else curses.color_pair(6)
     total_lines = len(contents_by_line)
 
