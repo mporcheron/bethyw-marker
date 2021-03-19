@@ -670,7 +670,10 @@ class coursework:
         temp_passed.append("When testing the JSON output of your code with a local authority code, and various measures, we still received an empty JSON object (i.e., {}), as expected")
 
       if autograder_marks['Extended output tests - Unseen output 2: bethyw -a swan -m RAIL'] == 0:
-        temp_failed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code didn't seem to return the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
+        if autograder_marks['Extended output tests - Unseen output 2a: bethyw -a swan -m RAIL'] == 0:
+          temp_failed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code didn't seem to return the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
+        else:
+          temp_passed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code still returned the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
       else:
         temp_passed.append("When testing with an area filtered by a partial name and with a measure in a different casing, your code still returned the correct output as textual tables (we tested this with bethyw -a swan -m RAIL)")
 
@@ -685,12 +688,18 @@ class coursework:
         temp_passed.append("That when we used the English and Welsh names for the area filter your code worked perfectly (we tested this with bethyw -d popden -a Abertawe,Swansea)")
 
       if autograder_marks['Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j'] == 0:
-        temp_failed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code didn't seem to give the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
+        if autograder_marks['Extended output tests - Unseen output 5a: bethyw -a swan,card -m pop,rail -y 2010-2018 -j'] == 0:
+          temp_failed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code didn't seem to give the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
+        else:
+          temp_passed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code generated all the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
       else:
         temp_passed.append("When requesting the JSON output for two areas with partially matching names, a measures filter, and a year range your code generated all the correct output (we tested this with bethyw -a swan,card -m pop,rail -y 2010-2018 -j)")
 
       if autograder_marks['Extended output tests - Unseen output 6: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
-        temp_failed.append("In our final output test, with two areas by authority code and a given year, your code's output wasn't quite correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
+        if autograder_marks['Extended output tests - Unseen output 6a: bethyw -a W06000015,W06000011 -y 2015 -j'] == 0:
+          temp_failed.append("In our final output test, with two areas by authority code and a given year, your code's output wasn't quite correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
+        else:
+          temp_passed.append("In our final output test, with two areas by authority code and a given year, your code's output was correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
       else:
         temp_passed.append("In our final output test, with two areas by authority code and a given year, your code's output was correct (we tested this with bethyw -a W06000015,W06000011 -y 2015 -j)")
 
@@ -1073,7 +1082,6 @@ class coursework:
               "Areas::populateFromWelshStatsJSON",
               "Areas::populateFromAuthorityByYearCSV",
               "Areas::populate",
-              "Areas::populate",
               "Areas::toJSON"],
 
             "bethyw.cpp": [
@@ -1357,7 +1365,7 @@ class coursework:
          "comments2": ("Could have included additional comments to explain complex chunks of code",            -1, "You could have used some more comments in your coursework solution to help readers of your code understand complex code blocks. "),
          "comments1": ("Good commenting in relevant places",                                                    0, "You have used commenting well throughout your coursework solution. Comments help readers of your code understand complex code blocks. ")
         },
-
+        
         {
          "naming4":   ("Poor naming of variables ",                                                            -1, "You don't seem to have adopted a convention when it comes to naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 0),
          "naming3":   ("OK naming of variables and functions (e.g. some variables are not descriptive)",      -.5, "In terms of naming convention, you could have shown greater care with naming your elements such as variables. Good naming removes the need for many comments because it allows people to read and make sense of code without explanatory comments. Remember, the names of variables if for humans reading your code and not the machine, so don't simply default to giving simplistic names, e.g., i, except in limited cased (e.g. iterators).\n\n", 1),
@@ -1400,6 +1408,39 @@ class coursework:
 
     return stage_result(
       updated_label = "Code style checking finished",
+      decision      = multidecision,
+      next_stage    = "extra_features")
+
+
+
+  def extra_features(student_id, marks, feedback): # max +3
+    multidecision = [
+        {
+         "pa2":       ("No extra program arguments",                                                           0, "EXTRA FEATURES\n"),
+         "pa1":       ("Good extra program arugments",                                                         1, "EXTRA FEATURES\nThe extra features, including program arguments, you added are nice. "),
+         "pa0":       ("Redundant extra program arguments",                                                    0, "EXTRA FEATURES\n"),
+        },
+        
+        {
+         "oo2":       ("No operator overloading",                                                               0, "You didn't seem to overload any operators except for what was explicitly asked. This is fine as you weren't expected to, but you could look into this in the future. "),
+         "oo1":       ("Sensible operator overloading",                                                         1, "You overloaded some additional operators too, which was great. Operator overloading is a nice feature in C++ we should try to use as much as we can (where it makes sense). "),
+         "oo0":       ("Redundant operator overloading",                                                        0, "You overloaded some additional operators too, which was great. Operator overloading is a nice feature in C++ we should try to use as much as we can (where it makes sense). I can't see much use of it in your coursework, but that's fine. "),
+        },
+
+        {
+         "tests2":    ("No extra tests",                                                                       0, "You could have written some extra tests for catching edge cases, if you wanted. "),
+         "tests1":    ("Sensible extra tests",                                                                 1, "Adding extra test cases was a nice touch! "),
+         "tests0":    ("Redundant extra tests",                                                                0, "Adding extra test cases was a good idea, although the tests provided seem redundant? "),
+        },
+        
+        {
+         "x1":        ("No extra features",                                                                     0, "You didn't include any extra features, which was fine. You weren't asked too."),
+         "x0":        ("They had extra features",                                                               0, ""),
+        },
+    ]
+
+    return stage_result(
+      updated_label = "Extra features checking finished",
       decision      = multidecision,
       next_stage    = "exceptions")
 
@@ -1535,12 +1576,17 @@ class coursework:
          "ref2":      ("Good coverage of pass-by-reference where appropriate",                                 -1, "CODE EFFICIENCY\nYou did use pass-by-reference in many of your functions, which means data is not needlessly copied around in your code. There are a few more places where you could have done this though. Keep it up :)\n\n"),
          "ref1":      ("Excellent use of pass-by-reference where appropriate",                                  0, "CODE EFFICIENCY\nYou did use pass-by-reference pretty much everywhere we expected it, which means data is not needlessly copied around in your code. Keep it up :)\n\n")
         },
+        
+        {
+         "std1":      ("Did not use 'using namespace std'",                                                     0, ""),
+         "std0":      ("Used 'using namespace std;",                                                           -1, "You used 'using namespace std' in your code, which I strongly discouraged in lectures. "),
+        },
 
         {
          "redund4":   ("Quite a bit of redundant or repeated code",                                            -3, "There's a fair few instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
          "redund3":   ("Some redundant or repeated code (e.g. could have been new functions)",                 -2, "You've included some instances of redundant/repeated code which could have been made more efficient (e.g. by moving them into separate functions).\n\n"),
          "redund2":   ("Maybe some redundant or repeated code",                                                -1, "Generally speaking, your solution avoids redundant/repeated code. Don't be afraid of refactoring code into separate functions to enhance readability and clarity of your code.\n\n"),
-         "redund1":   ("No redundant or repeated code",                                                         0, "You've also managed to avoid redundant/repeated code throughout, which is always a bonus.\n\n")
+         "redund1":   ("No redundant or repeated code",                                                         0, "You've also managed to avoid redundant/repeated code throughout, for example, by adding in extra functions.\n\n")
         },
 
         {

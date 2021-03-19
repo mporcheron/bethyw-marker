@@ -101,23 +101,26 @@ for catch2_test in iter(catch2_tests):
 
 
 output_tests = {
-  "nowarnings"     : (2, []),
-  "output1.txt"    : (1, ["-d", "invalidataset"]),
-  "output2.txt"    : (1, ["--dir", "invaliddir", "-d", "popden"]),
-  "output3.json"   : (1, ["-a", "doesnotexist", "-j"]),
-  "output4.txt"    : (1, ["-d", "popden"]),
-  "output5.json"   : (1, ["-d", "popden", "-j"]),
-  "output6.json"   : (1, ["-d", "biz", "-j"]),
-  "output7.json"   : (1, ["-d", "aqi", "-j"]),
-  "output8.json"   : (1, ["-d", "trains", "-j"]),
-  "output9.json"   : (1, ["-d", "complete-popden", "-j"]),
-  "output10.json"  : (1, ["-d", "complete-pop", "-a", "W06000024", "-m", "area"]),
-  "outputus1.json" : (1, ["-a", "W060000999", "-y", "0", "-m", "rb,db,all", "-j"]),
-  "outputus2.txt"  : (1, ["-a", "swan", "-m", "RAIL"]),
-  "outputus3.txt"  : (1, ["-d", "popden", "-a", "swan", "-m", "RAIL"]),
-  "outputus4.txt"  : (1, ["-d", "popden", "-a", "Abertawe,Swansea "]),
-  "outputus5.json" : (1, ["-a", "swan,card", "-m", "pop,rail", "-y", "2010-2018", "-j"]),
-  "outputus6.json" : (1, ["-a", "W06000015,W06000011", "-y", "2015", "-j"])
+  "nowarnings"      : (2, []),
+  "output1.txt"     : (1, ["-d", "invalidataset"]),
+  "output2.txt"     : (1, ["--dir", "invaliddir", "-d", "popden"]),
+  "output3.json"    : (1, ["-a", "doesnotexist", "-j"]),
+  "output4.txt"     : (1, ["-d", "popden"]),
+  "output5.json"    : (1, ["-d", "popden", "-j"]),
+  "output6.json"    : (1, ["-d", "biz", "-j"]),
+  "output7.json"    : (1, ["-d", "aqi", "-j"]),
+  "output8.json"    : (1, ["-d", "trains", "-j"]),
+  "output9.json"    : (1, ["-d", "complete-popden", "-j"]),
+  "output10.json"   : (1, ["-d", "complete-pop", "-a", "W06000024", "-m", "area"]),
+  "outputus1.json"  : (1, ["-a", "W060000999", "-y", "0", "-m", "rb,db,all", "-j"]),
+  "outputus2.txt"   : (1, ["-a", "swan", "-m", "RAIL"]),
+  "outputus2a.txt"  : (1, ["-a", "swan", "-m", "RAIL"]),
+  "outputus3.txt"   : (1, ["-d", "popden", "-a", "swan", "-m", "RAIL"]),
+  "outputus4.txt"   : (1, ["-d", "popden", "-a", "Abertawe,Swansea "]),
+  "outputus5.json"  : (1, ["-a", "swan,card", "-m", "pop,rail", "-y", "2010-2018", "-j"]),
+  "outputus5a.json" : (1, ["-a", "swan,card", "-m", "pop,rail", "-y", "2010-2018", "-j"]),
+  "outputus6.json"  : (1, ["-a", "W06000015,W06000011", "-y", "2015", "-j"])
+  "outputus6a.json" : (1, ["-a", "W06000015,W06000011", "-y", "2015", "-j"])
 }
   
 output_results = {}
@@ -317,6 +320,9 @@ with open(os.getcwd() + "/_marks/autograder.csv", "a") as markscsv:
   # Extended output tests - Unseen output 2: bethyw -a swan -m RAIL
   markscsv.write(str(output_results["outputus2.txt"]) + ",")
 
+  # Extended output tests - Unseen output 2a: bethyw -a swan -m RAIL
+  markscsv.write(str(output_results["outputus2a.txt"]) + ",")
+
   # Extended output tests - Unseen output 3: bethyw -d popden -a swan -m RAIL
   markscsv.write(str(output_results["outputus3.txt"]) + ",")
 
@@ -326,8 +332,14 @@ with open(os.getcwd() + "/_marks/autograder.csv", "a") as markscsv:
   # Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j
   markscsv.write(str(output_results["outputus5.json"]) + ",")
 
+  # Extended output tests - Unseen output 5a: bethyw -a swan,card -m pop,rail -y 2010-2018 -j
+  markscsv.write(str(output_results["outputus5a.json"]) + ",")
+
   # Extended output tests - Unseen output 6: bethyw -a W06000015,W06000011 -y 2015 -j
   markscsv.write(str(output_results["outputus6.json"]) + ",")
+
+  # Extended output tests - Unseen output 6a: bethyw -a W06000015,W06000011 -y 2015 -j
+  markscsv.write(str(output_results["outputus6a.json"]) + ",")
 
 
 
