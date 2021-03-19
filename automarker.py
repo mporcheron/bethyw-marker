@@ -55,6 +55,7 @@ class marker:
     self.progress["not_const_functions"]     = stage("Check that the right functions are const",                   coursework.not_const_functions)
     self.progress["aggressive_warnings"]     = stage("Use GCC to test code quality with some aggressive warnings", coursework.aggressive_warnings)
     self.progress["code_style"]              = stage("Evaluate the coding style",                                  coursework.code_style)
+    self.progress["extra_features"]          = stage("Add marks for extra features",                               coursework.extra_features)
     self.progress["exceptions"]              = stage("Check their exception handling",                             coursework.exceptions)
     self.progress["code_efficiency"]         = stage("Evaluate the coding style",                                  coursework.code_efficiency)
     self.progress["feedback"]                = stage("Modify the feedback",                                        coursework.feedback)
