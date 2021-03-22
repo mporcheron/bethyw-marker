@@ -56,6 +56,7 @@ catch2_tests = {
   "testus8"  : 2,
   "testus9"  : 2,
   "testus10" : 2,
+  "testus10a": 2,
   "testus11" : 2,
   "testus12" : 2,
 }
@@ -384,6 +385,9 @@ with open(os.getcwd() + "/_marks/autograder.csv", "a") as markscsv:
 
   # Extended Catch2 unit tests - Unseen test 10: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()
   markscsv.write(str(catch2_results["testus10"]) + ",")
+
+  # Extended Catch2 unit tests - Unseen test 10a: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()
+  markscsv.write(str(catch2_results["testus10a"]) + ",")
 
   # Extended Catch2 unit tests - Unseen test 11: An Area instance throws an exception when given a non-three alphabetical character language code
   markscsv.write(str(catch2_results["testus11"]) + ",")
