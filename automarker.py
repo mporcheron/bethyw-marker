@@ -1739,6 +1739,12 @@ class coursework:
          "redund2":   ("Maybe some redundant or repeated code",                                                -1, "Generally speaking, your solution avoids redundant/repeated code. Don't be afraid of refactoring code into separate functions to enhance readability and clarity of your code.\n\n"),
          "redund1":   ("No redundant or repeated code",                                                         0, "You've also managed to avoid redundant/repeated code throughout, for example, by adding in extra functions.\n\n")
         },
+        
+        {
+         "hc2":       ("Multiple instances of hardcoded values",                                               -3, "There were a few places where you have hardcoded values/conditions etc. to pass unit tests. While this might seem to work and pass the tests, it means your code is not as generic as possible. We should always try to write functions that conform to a standard rather than for specific instances of data, as expected in industry.\n\n"),
+         "hc1":       ("One instance of hardcoded values",                                                   -1.5, "It looks like you have hardcoded values/conditions etc. in your code to pass unit tests. While this might seem to work and pass the tests, it means your code is not as generic as possible. We should always try to write functions that conform to a standard rather than for specific instances of data, as expected in industry.\n\n"),
+         "hc0":       ("Avoided hardcoding valies",                                                             0, "Looking at your code, it's great to see that you avoided hardcoding values in conditions etc, meaning your code could also work with different datasets, for example. Writing generic functions is key in software development.\n\n"),
+        },
 
         {
          "attempt0":  ("Attempted nothing",                                                                    -2, "3. SUMMARY\nSadly, you attempted very little of this coursework and "),
