@@ -685,8 +685,8 @@ class coursework:
 
 
       # TASK 2
-      task2marks    = int(autograder_marks[test[catch2][provided]["01"]] + autograder_marks[test[catch2][provided]["02"]] + autograder_marks[test[catch2][provided]["03"]] + autograder_marks[test[catch2][provided]["04"]] + autograder_marks[test[catch2][extended]["12"]] + autograder_marks[test[output][provided]["01"]] + autograder_marks[test[output][provided]["02"]])
-      task2possible =                                                  1 +                                              1 +                                              1 +                                              1 +                                              2 +                                              1 +                                              1 
+      task2marks    = int(autograder_marks[test[catch2][provided]["01"]] + autograder_marks[test[catch2][provided]["02"]] + autograder_marks[test[catch2][provided]["03"]] + autograder_marks[test[catch2][provided]["04"]] + autograder_marks[test[catch2][extended]["12"]] + autograder_marks[test[output][provided]["01"]] + autograder_marks[test[output][provided]["02"]] +  autograder_marks[test[catch2][extended]["01"]])
+      task2possible =                                                  1 +                                              1 +                                              1 +                                              1 +                                              2 +                                              1 +                                              1 +                                               1 
       feedback += "Below is a summary of the various tasks, as organised by the coursework worksheet. Note that the marks given below are the same marks as given above but categorised by task rather than test type. For deciding the weighting of each test (i.e., number of marks), each test was assessed for its relative difficulty based on the module content and how much work was involved.\n\n1.1. TASK 2: IMPLEMENT PROGRAM ARGUMENT PARSING FUNCTIONS (" + str(task2marks) + "/" + str(task2possible) + ")\n"
       if autograder_marks[test[catch2][provided]["01"]] > 0 and \
          autograder_marks[test[catch2][provided]["02"]] > 0 and \
@@ -1014,8 +1014,8 @@ class coursework:
 
 
       # TASK 8
-      task8marks    = int(autograder_marks[test[output][extended]["02"]] + autograder_marks[test[output][extended]["02a"]] + autograder_marks[test[output][provided]["10"]] + autograder_marks[test[output][extended]["03"]] + autograder_marks[test[output][extended]["04"]] + autograder_marks[test[output][extended]["05"]] + autograder_marks[test[output][extended]["05a"]])
-      task8possible =                                                  1 +                                               0 +                                              1 +                                              1 +                                              1 +                                              1 +                                              0
+      task8marks    = int(autograder_marks[test[output][extended]["02"]] + autograder_marks[test[output][extended]["02a"]] + autograder_marks[test[output][extended]["03"]] + autograder_marks[test[output][extended]["04"]] + autograder_marks[test[output][extended]["05"]] + autograder_marks[test[output][extended]["05a"]])
+      task8possible =                                                  1 +                                               0 +                                              1 +                                              1 +                                              1 +                                              0
       
       feedback += "\n1.7. TASK 8: IMPLEMENT EXTENED ARGUMENT FILTERING (" + str(task8marks) + "/" + str(task8possible) + ")\nFor this task, there were a variety of different output tests:\n"
 
@@ -1080,17 +1080,17 @@ class coursework:
     res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
 
     if res.returncode == 0:
-      cmd = ["./bin/bethyw",
+      cmd2 = ["./bin/bethyw",
              "-d",
              "popden",
              "-y",
              "1995-1999"]
-      res = subprocess.run(cmd, cwd=coursework.TEST_SRC_DIR, capture_output=True)
+      res = subprocess.run(cmd2, cwd=coursework.TEST_SRC_DIR, capture_output=True)
     
       stdout = res.stdout.decode("utf-8")
       stderr = res.stderr.decode("utf-8")
 
-      if res.returncode == 0 and stderr == "":
+      if res.returncode == 0:
         preamble = "\n2.0 GOODNESS (//goodness_total///40)\nThe marking for this section is based on a qualitative assessment of the code you produced for this assignment. This has been broken out, for clarity, over a number of subsections below.\n\n"
         multidecision = [
             {
@@ -1106,7 +1106,7 @@ class coursework:
              "stats0":    ("Statistics included",                      0, "You did included the required statistics in your output, which is great. ")
             },
             {
-             "noareas3":  ("<skip areas with no data point>",          0, ""),
+             "noareas3":  ("<skip areas with no data point>",          0, "\n\n"),
              "noareas2":  ("Areas with no data missing",               0, "When an area has no measures or data, I was expecting something like <no measures> or <no data> to be printed to signify this.\n\n"),
              "noareas1":  ("Areas with no data messy",                 0, "When an area has no measures, I was expecting something like <no measures> or <no data> to be printed to signify this, and for this to be clear to the user.\n\n"),
              "noareas0":  ("Areas with no data fine",                  0, "You did include areas which had no data given the current filters, clearly denoting this.\n\n")
@@ -1120,7 +1120,8 @@ class coursework:
           next_stage       = "memtest")
 
     return stage_result(
-      updated_label    = "Couldn't compile and run coursework with tables table",
+      updated_label    = "Couldn't compile and run coursework with commands " + (" ".join(cmd)) + " and "  + (" ".join(cmd2)),
+      view_text        = stderr,
       next_stage       = "memtest",
       student_marks    = -2)
         
@@ -1207,8 +1208,8 @@ class coursework:
   def input_source(student_id, marks, feedback): # max -1
     multidecision = [
         {
-         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -1, "\n\n2.2. INHERITANCE\nYou didn't make the InputSource and InputFile functions and destructor all virtual, as required. "),
-         "inpt1":     ("InputSource and InputFile functions + destructor are virtual",                         0, "\n\n2.2. INHERITANCE\nIn InputSource and InputFile, you correctly used virtual functions, including with a virtual destructor."),
+         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -1, "2.2. INHERITANCE\nYou didn't make the InputSource and InputFile functions and destructor all virtual, as required. "),
+         "inpt1":     ("InputSource and InputFile functions + destructor are virtual",                         0, "2.2. INHERITANCE\nIn InputSource and InputFile, you correctly used virtual functions, including with a virtual destructor."),
         },
       ]
 
@@ -1452,7 +1453,7 @@ class coursework:
         'shadows a parameter':                    (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope or as a parameter (as in this case). The first place I spotted this was in __ on line __ with the __.", ['shadows a local', 'shadows a previous local', 'shadows a member']),
         'shadows a local':                        (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place I spotted this was in __ on line __ with the __.", ['shadows a member', 'shadows a previous local', 'shadows a parameter']),
         'shadows a previous local':               (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place I spotted this was in __ on line __ with the __.", ['shadows a member', 'shadows a local', 'shadows a parameter']),
-          'shadows a member':                       (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a member variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (a member variable in this case) or where you declare a variable with the same name as a parameter. The first place I spotted this was in __ on line __.", ['shadows a local', 'shadows a previous local', 'shadows a parameter']),
+        'shadows a member':                       (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a member variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (a member variable in this case) or where you declare a variable with the same name as a parameter. The first place I spotted this was in __ on line __.", ['shadows a local', 'shadows a previous local', 'shadows a parameter']),
 
         'switch missing default case':            (.5, 2, r'([a-zA-Z.]*):([0-9]+)',            "You seem to have a switch statement in __ on __ that doesn't have a default value. This may be OK in this case, but typically one would be expected (e.g., to catch unexpected values).")
       }
@@ -1493,10 +1494,10 @@ class coursework:
 
       elif len(feedback_list) == 1:
         lower = lambda s: s[:1].lower() + s[1:] if s else ''
-        feedback += "While reviewing your code, I noticed the following that " + lower(feedback_list[0]) + "\n"
+        feedback += "While reviewing your code, I noticed that " + lower(feedback_list[0]) + "\n"
 
       elif len(feedback_list) > 1:
-        feedback += "\n\nWhile reviewing your code, I noticed the following that:\n"
+        feedback += "\n\nWhile reviewing your code, I noticed that:\n"
         for i, feedback_item in enumerate(feedback_list):
           feedback += '  ' + str(i+1) + ". " + feedback_item + "\n"
 
@@ -1777,7 +1778,7 @@ class coursework:
          "overall4":  ("2.5/4, this is a very good coursework (quality, not completeness)",                  -1.5, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
          "overall3":  ("  3/4, this is a great coursework (quality, not completeness)",                        -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
          "overall2":  ("3.5/4, this is a excellent coursework (quality, not completeness)",                  -0.5, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall1":  ("  4/4: this is a perfect coursework (quality, not completeness)",                       0, "this is a perfect coursework solution. You have produced some great code. Well done!")
+         "overall1":  ("  4/4: this is a perfect coursework (quality, not completeness)",                       0, "this is a truly excellent coursework solution. You have produced some great code. Well done!")
         }
       ]
 
