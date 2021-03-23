@@ -606,9 +606,9 @@ class coursework:
 
     test[output][extended]["T"]   = "Extended output tests Total"
     test[output][extended]["01"]  = "Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j"
-    test[output][extended]["02"]  = "Extended output tests - Unseen output 2: bethyw -a swan -m RAIL"
-    test[output][extended]["02a"] = "Extended output tests - Unseen output 2a: bethyw -a swan -m RAIL"
-    test[output][extended]["03"]  = "Extended output tests - Unseen output 3: bethyw -d popden -a swan -m RAIL"
+    test[output][extended]["02"]  = "Extended output tests - Unseen output 2: bethyw -a swan -m rail"
+    test[output][extended]["02a"] = "Extended output tests - Unseen output 2a: bethyw -a swan -m rail"
+    test[output][extended]["03"]  = "Extended output tests - Unseen output 3: bethyw -d popden -a swan -m rail"
     test[output][extended]["04"]  = "Extended output tests - Unseen output 4: bethyw -d popden -a Abertawe,Swansea "
     test[output][extended]["05"]  = "Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j"
     test[output][extended]["05a"] = "Extended output tests - Unseen output 5a: bethyw -a swan,card -m pop,rail -y 2010-2018 -j"
@@ -1421,9 +1421,9 @@ class coursework:
 
     test[output][extended]["T"]   = "Extended output tests Total"
     test[output][extended]["01"]  = "Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j"
-    test[output][extended]["02"]  = "Extended output tests - Unseen output 2: bethyw -a swan -m RAIL"
-    test[output][extended]["02a"] = "Extended output tests - Unseen output 2a: bethyw -a swan -m RAIL"
-    test[output][extended]["03"]  = "Extended output tests - Unseen output 3: bethyw -d popden -a swan -m RAIL"
+    test[output][extended]["02"]  = "Extended output tests - Unseen output 2: bethyw -a swan -m rail"
+    test[output][extended]["02a"] = "Extended output tests - Unseen output 2a: bethyw -a swan -m rail"
+    test[output][extended]["03"]  = "Extended output tests - Unseen output 3: bethyw -d popden -a swan -m rail"
     test[output][extended]["04"]  = "Extended output tests - Unseen output 4: bethyw -d popden -a Abertawe,Swansea "
     test[output][extended]["05"]  = "Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j"
     test[output][extended]["05a"] = "Extended output tests - Unseen output 5a: bethyw -a swan,card -m pop,rail -y 2010-2018 -j"
@@ -1838,14 +1838,14 @@ class coursework:
       feedback += "\n1.7. TASK 8: IMPLEMENT EXTENDED ARGUMENT FILTERING (" + str(task8marks) + "/" + str(task8possible) + ")\nFor this task, there were a variety of different output tests:\n"
 
       if autograder_marks[test[output][provided]["02"]] > 0 or autograder_marks[test[output][provided]["02a"]] > 0:
-        feedback += "- The output for the command bethyw -a swan -m RAIL was exactly as I expected\n"
+        feedback += "- The output for the command bethyw -a swan -m rail was exactly as I expected\n"
       else:
-        feedback += "- The output for the command bethyw -a swan -m RAIL didn't seem to match what was expected (even accounting for the two interpretations of the filtering)\n"
+        feedback += "- The output for the command bethyw -a swan -m rail didn't seem to match what was expected (even accounting for the two interpretations of the filtering)\n"
 
       if autograder_marks[test[output][provided]["03"]] > 0:
-        feedback += "- The output for the command bethyw -d popden -a swan -m RAIL was exactly as I expected\n"
+        feedback += "- The output for the command bethyw -d popden -a swan -m rail was exactly as I expected\n"
       else:
-        feedback += "- The output for the command bethyw -d popden -a swan -m RAIL didn't seem to match what was expected\n"
+        feedback += "- The output for the command bethyw -d popden -a swan -m rail didn't seem to match what was expected\n"
 
       if autograder_marks[test[output][provided]["04"]] > 0:
         feedback += "- The output for the command bethyw -d popden -a Abertawe,Swansea was exactly as I expected\n"
@@ -2834,14 +2834,14 @@ class coursework:
       feedback += "\n1.7. TASK 8: IMPLEMENT EXTENED ARGUMENT FILTERING (" + str(task8marks) + "/" + str(task8possible) + ")\nFor this task, there were a variety of different output tests:\n"
 
       if autograder_marks[test[output][provided]["02"]] > 0 or autograder_marks[test[output][provided]["02a"]] > 0:
-        feedback += "- The output for the command bethyw -a swan -m RAIL was exactly as I expected\n"
+        feedback += "- The output for the command bethyw -a swan -m rail was exactly as I expected\n"
       else:
-        feedback += "- The output for the command bethyw -a swan -m RAIL didn't seem to match what was expected (even accounting for the two interpretations of the filtering)\n"
+        feedback += "- The output for the command bethyw -a swan -m rail didn't seem to match what was expected (even accounting for the two interpretations of the filtering)\n"
 
       if autograder_marks[test[output][provided]["03"]] > 0:
-        feedback += "- The output for the command bethyw -d popden -a swan -m RAIL was exactly as I expected\n"
+        feedback += "- The output for the command bethyw -d popden -a swan -m rail was exactly as I expected\n"
       else:
-        feedback += "- The output for the command bethyw -d popden -a swan -m RAIL didn't seem to match what was expected\n"
+        feedback += "- The output for the command bethyw -d popden -a swan -m rail didn't seem to match what was expected\n"
 
       if autograder_marks[test[output][provided]["04"]] > 0:
         feedback += "- The output for the command bethyw -d popden -a Abertawe,Swansea was exactly as I expected\n"
