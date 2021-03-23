@@ -3619,4 +3619,3 @@ class coursework:
       updated_label    = "Marking finished",
       student_feedback = feedback,
       next_stage       = None)
-
