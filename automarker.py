@@ -578,58 +578,15 @@ class coursework:
     
     test = {"output": {"provided": {}, "extended" : {}}, "catch2" : {"provided": {}, "extended" : {}}}
 
-    test[output][provided]["T"]  = "Output tests Total"
-    test[output][provided]["W"]  = "Output tests - Compilation completed without warnings"
-    test[output][provided]["01"] = "Output tests - Output 1: bethyw -d invalidataset"
-    test[output][provided]["02"] = "Output tests - Output 2: bethyw --dir invalidir"
-    test[output][provided]["03"] = "Output tests - Output 3: bethyw -a doesnotexist -j"
-    test[output][provided]["04"] = "Output tests - Output 4: bethyw -d popden"
-    test[output][provided]["05"] = "Output tests - Output 5: bethyw -d popden -j"
-    test[output][provided]["06"] = "Output tests - Output 6: bethyw -d biz -j"
-    test[output][provided]["07"] = "Output tests - Output 7: bethyw -d aqi -j"
-    test[output][provided]["08"] = "Output tests - Output 8: bethyw -d trains -j"
-    test[output][provided]["09"] = "Output tests - Output 9: bethyw -d complete-popden -j"
-    test[output][provided]["10"] = "Output tests - Output 10: bethyw -d complete-pop -a W06000024 -m area"
-
-    test[catch2][provided]["T"]  = "Provided Catch2 unit tests Total"
-    test[catch2][provided]["01"] = "Provided Catch2 unit tests - Test 1: The --datasets program argument can be parsed as a list of datasets to import"
-    test[catch2][provided]["02"] = "Provided Catch2 unit tests - Test 2: The --areas program argument can be parsed correctly, whether it is a single area's code, a comma-separated list of codes, contains 'all' as a value, or is missing; and a filter list generated"
-    test[catch2][provided]["03"] = "Provided Catch2 unit tests - Test 3: The --measures program argument can be parsed correctly, whether it is a single measure's codename, a comma-separated list of codenames, contains 'all' as a value, or is missing"
-    test[catch2][provided]["04"] = "Provided Catch2 unit tests - Test 4: The --years program argument can be parsed correctly, whether it is a equal to single four-digit year, two four-digit years separated by a hyphen, '0', '0-0', or invalid due to the presence of non-numerical values"
-    test[catch2][provided]["05"] = "Provided Catch2 unit tests - Test 5: When given a path to a dataset file, an InputFile object is constructed and can return a reference to a stream if it is a valid path"
-    test[catch2][provided]["06"] = "Provided Catch2 unit tests - Test 6: A Measure object can be constructed in your coursework, where the constructor is given an std::string codename (which is converted to lowercase) and label, with a default size of 0"
-    test[catch2][provided]["07"] = "Provided Catch2 unit tests - Test 7: A Measure object can be populated with values, with the Measure object not allowing more than one value per year, and retrieving a non-existent value will throw an exception"
-    test[catch2][provided]["08"] = "Provided Catch2 unit tests - Test 8: An Area instance can be constructed with a local authority code and contain multiple names in different languages, identified by three-letter code"
-    test[catch2][provided]["09"] = "Provided Catch2 unit tests - Test 9: An Area instance can contain Measure instances and return values, and cannot contain two Measure instances with the same codename"
-    test[catch2][provided]["10"] = "Provided Catch2 unit tests - Test 10: An Areas instance can be constructed populated with Area instances, and cannot contain two Area instances with the same local authority code"
-    test[catch2][provided]["11"] = "Provided Catch2 unit tests - Test 11: The dataset areas.csv can be correctly parsed by your code in Areas::populateFromAuthorityCodeCSV()"
-    test[catch2][provided]["12"] = "Provided Catch2 unit tests - Test 12: The dataset popu1009.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()"
-
-    test[output][extended]["T"]   = "Extended output tests Total"
-    test[output][extended]["01"]  = "Extended output tests - Unseen output 1: bethyw -a W060000999 -y 0 -m rb,db,all -j"
     test[output][extended]["02"]  = "Extended output tests - Unseen output 2: bethyw -a swan -m rail"
     test[output][extended]["02a"] = "Extended output tests - Unseen output 2a: bethyw -a swan -m rail"
-    test[output][extended]["03"]  = "Extended output tests - Unseen output 3: bethyw -d popden -a swan -m rail"
-    test[output][extended]["04"]  = "Extended output tests - Unseen output 4: bethyw -d popden -a Abertawe,Swansea "
     test[output][extended]["05"]  = "Extended output tests - Unseen output 5: bethyw -a swan,card -m pop,rail -y 2010-2018 -j"
     test[output][extended]["05a"] = "Extended output tests - Unseen output 5a: bethyw -a swan,card -m pop,rail -y 2010-2018 -j"
     test[output][extended]["06"]  = "Extended output tests - Unseen output 6: bethyw -a W06000015,W06000011 -y 2015 -j"
     test[output][extended]["06a"] = "Extended output tests - Unseen output 6a: bethyw -a W06000015,W06000011 -y 2015 -j"
 
-    test[catch2][extended]["T"]   = "Extended Catch2 unit tests Total"
-    test[catch2][extended]["01"]  = "Extended Catch2 unit tests - Unseen test 1: The --years program argument throws the correct exception is an incorrect length (e.g. two digits)"
-    test[catch2][extended]["02"]  = "Extended Catch2 unit tests - Unseen test 2: A Measure object will replace an existing value when given a new value for an existing year"
-    test[catch2][extended]["03"]  = "Extended Catch2 unit tests - Unseen test 3: An Areas instance will merge two Area instances and the names of the second Area instances will overwrite the first"
-    test[catch2][extended]["04"]  = "Extended Catch2 unit tests - Unseen test 4: An Area instance will merge in values when given a Measure with the name matching the original"
-    test[catch2][extended]["05"]  = "Extended Catch2 unit tests - Unseen test 5: Measure codenames are imported and converted to lowercase when populated from a dataset stream"
-    test[catch2][extended]["06"]  = "Extended Catch2 unit tests - Unseen test 6: The requested statistics (difference, difference as percentage, and mean) can be correctly calculated from the imported data"
-    test[catch2][extended]["07"]  = "Extended Catch2 unit tests - Unseen test 7: The dataset econ0080.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()"
-    test[catch2][extended]["08"]  = "Extended Catch2 unit tests - Unseen test 8: The dataset envi0201.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()"
-    test[catch2][extended]["09"]  = "Extended Catch2 unit tests - Unseen test 9: The dataset tran0152.json can be correctly parsed by your code in Areas::populateFromWelshStatsJSON()"
     test[catch2][extended]["10"]  = "Extended Catch2 unit tests - Unseen test 10: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()"
     test[catch2][extended]["10a"] = "Extended Catch2 unit tests - Unseen test 10a: The dataset complete-popu1009-popden.csv can be correctly parsed by your code in Areas::populateFromAuthorityByYearCSV()"
-    test[catch2][extended]["11"]  = "Extended Catch2 unit tests - Unseen test 11: An Area instance throws an exception when given a non-three alphabetical character language code "
-    test[catch2][extended]["12"]  = "Extended Catch2 unit tests - Unseen test 12: The program arugments work with a case-insensitive ALL value"
 
     try:
       autograder_marks = df.loc[key].copy()
@@ -639,16 +596,16 @@ class coursework:
          (autograder_marks[test[output][extended]["05"]] + autograder_marks[test[output][extended]["05a"]] < 1) or \
          (autograder_marks[test[output][extended]["06"]] + autograder_marks[test[output][extended]["06a"]] < 1):
 
-        cmd = ["./fixmarks", str(student_id)]
-        res = subprocess.run(cmd, cwd='./_constcheck', capture_output=True)
+        cmd = ["./fixmarks.py", str(student_id)]
+        res = subprocess.run(cmd, cwd='.', capture_output=True)
         stdout = res.stdout.decode("utf-8")
 
         return stage_result(
-          updated_label = "Retested  edited tests- " + str(autograder_marks[test[catch2][extended]["10"]] + autograder_marks[test[catch2][extended]["10a"]]) + " / " +
-                                                       str(autograder_marks[test[output][extended]["02"]] + autograder_marks[test[output][extended]["02a"]]) + " / " +
-                                                       str(autograder_marks[test[output][extended]["05"]] + autograder_marks[test[output][extended]["05a"]]) + " / " +
-                                                       str(autograder_marks[test[output][extended]["06"]] + autograder_marks[test[output][extended]["06a"]]),
-          view_text  = stdout,
+          updated_label = "Retested  edited tests - " + str(autograder_marks[test[catch2][extended]["10"]] + autograder_marks[test[catch2][extended]["10a"]]) + " / " +
+                                                        str(autograder_marks[test[output][extended]["02"]] + autograder_marks[test[output][extended]["02a"]]) + " / " +
+                                                        str(autograder_marks[test[output][extended]["05"]] + autograder_marks[test[output][extended]["05a"]]) + " / " +
+                                                        str(autograder_marks[test[output][extended]["06"]] + autograder_marks[test[output][extended]["06a"]]),
+          view_text  = ("Output from fixmarks.py " + str(student_id), stdout),
           next_stage = "autograder")
 
       return stage_result(
@@ -942,14 +899,14 @@ class coursework:
 
       if autograder_marks[test[catch2][extended]["05"]] > 0:
         if autograder_marks[test[catch2][extended]["02"]] > 0:
-          feedback += "Hidden tests confirm your Measure object converts codenames to lowercase and also handles the insert-and-merge functionality correctly.\n\n"
+          feedback += "Hidden tests confirm your Area object converts Measure codenames to lowercase and handles case-insensitive finding of Measures by codename. It also handles the insert-and-merge functionality correctly.\n\n"
         else:
-          feedback += "Hidden tests confirm your Measure object converts codenames to lowercase, but it the expected insert-and-merge functionality described in the block comments doesn't seem to work quite as expected.\n\n"
+          feedback += "Hidden tests confirm your Area object converts Measure codenames to lowercase and handles case-insensitive finding of Measures by codename, but the expected insert-and-merge functionality described in the block comments doesn't seem to work quite as expected.\n\n"
       else:
         if autograder_marks[test[catch2][extended]["02"]] > 0:
-          feedback += "A hidden test shows that your Measure object doesn't convert codenames to lowercase as required. A second hidden test though does show that the insert-and-merge functionality works as expected.\n\n"
+          feedback += "A hidden test shows that your Area object doesn't convert Measure codenames to lowercase as required (or maybe that the Area::getMeasure() method isn't case insensitive). A second hidden test though does show that the insert-and-merge functionality works as expected.\n\n"
         else:
-          feedback += "Hidden tests show that your Measure object doesn't convert codenames to lowercase as required or implement the object to handle insert-and-merging of values correctly. You should have paid closer attention to the block comments here.\n\n"
+          feedback += "Hidden tests show that your Area object doesn't convert Measure codenames to lowercase as required (or maybe that the Area::getMeasure() method isn't case insensitive), it also doesn't handle insert-and-merging of values correctly. You should have paid closer attention to the block comments here.\n\n"
 
       if autograder_marks[test[catch2][provided]["09"]] > 0:
         if autograder_marks[test[catch2][extended]["04"]] > 0:
@@ -1219,13 +1176,13 @@ class coursework:
         
         return stage_result(
           updated_label    = "Sample tables output generated",
-          view_text        = ("Output from ./bin/bethyw -d popden", stdout),
+          view_text        = ("Output from ./bin/bethyw -d popden -y 1995-1999", stdout),
           decision         = multidecision,
           next_stage       = "memtest")
 
     return stage_result(
       updated_label    = "Couldn't compile and run coursework with commands " + (" ".join(cmd)) + " and "  + (" ".join(cmd2)),
-      view_text        = stderr,
+      view_text        = ("Compilation output", stdout + "\n" + stderr),
       next_stage       = "memtest",
       student_marks    = -2)
         
