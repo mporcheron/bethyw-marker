@@ -120,7 +120,7 @@ output_tests = {
   "outputus4.txt"   : (1, ["-d", "popden", "-a", "Abertawe,Swansea "]),
   "outputus5.json"  : (1, ["-a", "swan,card", "-m", "pop,rail", "-y", "2010-2018", "-j"]),
   "outputus5a.json" : (1, ["-a", "swan,card", "-m", "pop,rail", "-y", "2010-2018", "-j"]),
-  "outputus6.json"  : (1, ["-a", "W06000015,W06000011", "-y", "2015", "-j"])
+  "outputus6.json"  : (1, ["-a", "W06000015,W06000011", "-y", "2015", "-j"]),
   "outputus6a.json" : (1, ["-a", "W06000015,W06000011", "-y", "2015", "-j"])
 }
   
