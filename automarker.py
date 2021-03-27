@@ -3,6 +3,7 @@ import curses
 import collections
 import emoji
 import math
+import numpy as np
 import os
 import pandas as pd
 import re
@@ -18,6 +19,7 @@ import xml.etree.ElementTree as ET
 class marker:
   MARKS_DIR       = os.getcwd() + "/_marks"
   AUTOGRADER_FILE = MARKS_DIR + "/autograder.csv"
+  INTRANET_FILE   = MARKS_DIR + "/intranet.csv"
 
   def __init__(self, autograder_file, submissions_dir, student_id):
     self.stdscr        = None
@@ -25,6 +27,7 @@ class marker:
     self.auto_progress = True
 
     marker.AUTOGRADER_FILE = autograder_file
+    marker.INTRANET_FILE   = "_marks" + "/intranet.csv"
 
     # student's detail)
     self.student_id      = student_id
@@ -45,6 +48,7 @@ class marker:
     self.progress = collections.OrderedDict()
     self.progress["setup"]                   = stage("Copy student's submission into temporary marking directory", coursework.setup)
     self.progress["readme"]                  = stage("Read the student's README",                                  coursework.readme)
+    self.progress["intro"]                   = stage("Add the feedback intro",                                     coursework.intro)
     self.progress["retest_autograder"]       = stage("Retest edited autograder tests ",                            coursework.retest_autograder)
     self.progress["autograder"]              = stage("Parse autograder output",                                    coursework.autograder)
     self.progress["opensrc"]                 = stage("Begin reading through the student's code",                   coursework.opensrc)
@@ -548,7 +552,7 @@ class coursework:
     if not os.path.isfile(coursework.TEST_SRC_DIR + "/README.md"):
       return stage_result(
         updated_label = "No README.md included",
-        next_stage    = "autograder")
+        next_stage    = "intro")
 
     with open(coursework.TEST_SRC_DIR + "/README.md", "r") as f:
       contents = f.read()
@@ -556,7 +560,53 @@ class coursework:
     return stage_result(
       updated_label = "README.md included and opened",
       view_text     = ("README.md", contents),
-      next_stage    = "retest_autograder")
+      next_stage    = "intro")
+
+
+  def intro(student_id, marks, feedback):
+    df = pd.read_csv(marker.INTRANET_FILE)
+    df = df.astype({'STU_CODE': np.int32})
+    df.set_index('STU_CODE', inplace=True)
+
+    try:
+      coursework.intranet_data = df.loc[int(student_id)].copy()
+      coursework.name = coursework.intranet_data['PreferredName']
+      new_feedback = "Thanks " + coursework.intranet_data['PreferredName'] + " for your coursework submission. Below I've detailed your feedback and marks.\n\n"
+      new_feedback += "First though, I want to provide some context of this coursework. "
+      new_feedback += "This coursework was hard by design, although the actual implementation "
+      new_feedback += "work was often composed of reading parameters and looping over Standard "
+      new_feedback += "Library containers again and again. If given as individual tasks, the coursework might not "
+      new_feedback += "have seemed so challenging, but as a whole I understand many students found this tough coursework to understand.\n\n"
+      new_feedback += "Part of this toughness was, of course, from the fact you were presented with an alien "
+      new_feedback += "codebase in a language you don't have much experience in, asked to understand what was "
+      new_feedback += "going on, and then start writing code to pass unit tests given to you. This is not unlike "
+      new_feedback += "what happens in industry—when you walk into a job you may be given a couple of weeks to "
+      new_feedback += "understand how your new employer's systems work, including many different codebases, testing "
+      new_feedback += "systems, all of which may be implemented in multiple languages and developed over many years by many people, some of whom may not be in the business any more. "
+      new_feedback += "You probably wouldn't always get comprehensive documentation either. As I've mentioned in lectures, I also did a Computer Science degree "
+      new_feedback += "and many of my friends walked into jobs in many different companies and many had to do this "
+      new_feedback += "immediately and within a couple of weeks. It's tough, it can be confusing, and it's part of of "
+      new_feedback += "being a Computer Scientist. You rarely make a product from scratch in isolation, in the language "
+      new_feedback += "of your choice, and with complete control over the design. This coursework simulated that experience. "
+      new_feedback += "\n\nOf course, in a business you'll be able to ask for help, and indeed I allowed that too. There were multiple "
+      new_feedback += "opportunities for help in this course, through lab sessions, office hours, email and the Canvas discussions. "
+      new_feedback += "I answered hundreds of questions—from debugging problems to clarifications questions—typically within 12 hours. "
+      new_feedback += "You almost certainly won't have such support in a job. Taking charge for your work, managing your time, and working "
+      new_feedback += "out strategies to break down tasks are key skills you will need to continually develop in your future career. "
+      new_feedback += "\n\nGiven all of this, I very much consider a large part of this task as to figuring out how things work, and demonstrating "
+      new_feedback += "your understanding of the task. The marking reflects this: this wasn't a pure programming task as you may have had in "
+      new_feedback += "other modules. In this coursework, I was looking for you to demonstrate understanding of a new language, of new tasks, different instances of the same problem, descriptions of "
+      new_feedback += "functions and functionality, and so forth. This is why 40% of the marks are for goodness—they represent how much you demonstrate "
+      new_feedback += "you can do this.\n\n"
+
+      return stage_result(
+        updated_label    = "Intro added to feedback",
+        student_feedback = new_feedback,
+        next_stage       = "retest_autograder")
+    except KeyError as e:
+      return stage_result(
+        updated_label = "Error with intranet import:" + str(e),
+        next_stage    = None)
 
         
 
@@ -702,44 +752,44 @@ class coursework:
 
       feedback += "1. SUMMARY OF AUTOMATED MARKING (" + str(autograder_marks["Total Points"]) + "/" + str(autograder_marks["Total Points Possible"]) + ")\n"
       if autograder_marks[test[output][provided]["W"]] == 0:
-        feedback += "It looks like your code has some warnings or errors from the compiler (" + str(autograder_marks[test[output][provided]["W"]]) + "/2)? You should aim to always produce code that has no warnings or errors, even if it is incomplete and does not implement all the functionality. This was a relatively easy area to pick up 2 marks (i.e. the code you were given compiles without warnings already). You were able to test your output using the CS Autograder, which displayed this feedback to you.\n\n"
+        feedback += "It looks like your code has some warnings or errors from the compiler (" + str(autograder_marks[test[output][provided]["W"]]) + "/2)? You should aim to always produce code that has no warnings or errors, even if it is incomplete and does not implement all the functionality. This was a relatively easy area to pick up 2 marks (i.e. the code you were given compiles without warnings already). You were able to test your output using the CS Autograder, which displayed this feedback to you.  In many large projects, committing code that doesn't compile or compiles with warnings is considered extremely bad practice, and in future you should make sure to thoroughly test your work to avoid this. I stressed multiple times that good code is better than lots of code.\n\n"
       else:
-        feedback += "Your code compiled without issuing any warnings (" + str(autograder_marks[test[output][provided]["W"]]) + "/2), even with all the extra options enabled—this is great! You should never be submitting code with errors or warnings, even if the code is incomplete.\n\n"
+        feedback += "Your code compiled without issuing any warnings (" + str(autograder_marks[test[output][provided]["W"]]) + "/2), even with all the extra options enabled—this is great! You should never be submitting code with errors or warnings, even if the code is incomplete. In many large projects, committing code that doesn't compile or compiles with warnings is considered extremely bad practice.\n\n"
 
       if autograder_marks[test[catch2][provided]["T"]] == 0:
-        feedback += "It seems your code failed to pass any of the provided Catch2 tests (" + str(autograder_marks["Provided Catch2 unit tests Total"]) + "/" + str(autograder_marks["Provided Catch2 unit tests Total Possible"]) + "). You were advised to make sure you passed these tests. "
+        feedback += "It seems your code failed to pass any of the provided Catch2 tests (" + str(autograder_marks["Provided Catch2 unit tests Total"]) + "/" + str(autograder_marks["Provided Catch2 unit tests Total Possible"]) + "). You were advised to make sure you passed these tests, and could test your code against them both yourself and on CS Autograder (which showed you your mark for these tests). "
         if autograder_marks[test[catch2][extended]["T"]] == 0:
-          feedback += "Your also scored " + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + " on the additional Catch2 tests I performed, testing many more edge cases in your code. "
+          feedback += "Your also scored " + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + " on the additional Catch2 tests I performed. "
         feedback += "Although there are an infinite number of ways to implement this coursework, you were specifically asked to implement functions in a given way. In future, I recommend you read coursework specifications more closely to understand what is asked of you.  "
       elif autograder_marks[test[catch2][provided]["T"]] < 10:
-        feedback += "You code passed less than 50% of the provided Catch2 tests  (" + str(autograder_marks["Provided Catch2 unit tests Total"]) + "/" + str(autograder_marks["Provided Catch2 unit tests Total Possible"]) + "). You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well here. You had local copies of these tests and could have examined their source closely to work out how to make sure your code complied with them. "
+        feedback += "You code passed less than 50% of the provided Catch2 tests  (" + str(autograder_marks["Provided Catch2 unit tests Total"]) + "/" + str(autograder_marks["Provided Catch2 unit tests Total Possible"]) + "). You had local copies of these tests and could have examined their source closely to work out how to make sure your code complied with them. Reading these tests, thinking about what they do, and how to solve them would have helped. This wasn't an easy task, nor one that could be rushed. You should have read the tests, and looked at the code in the coursework framework they were testing. What did the block comment for the function say? How did this correspond to the tests? With this, you could have worked out how to pass the test. For most of the functions, the actual implementation was usually relatively simple. "
       elif autograder_marks[test[catch2][provided]["T"]] < 20:
-        feedback += "You code passed most of the provided Catch2 tests  (" + str(autograder_marks["Provided Catch2 unit tests Total"]) + "/" + str(autograder_marks["Provided Catch2 unit tests Total Possible"]) + "). These were designed to test the basic implementation of your program in response to the test files. These were easy points to score, so it is a shame you didn't quite get full marks here. "
+        feedback += "You code passed most of the provided Catch2 tests  (" + str(autograder_marks["Provided Catch2 unit tests Total"]) + "/" + str(autograder_marks["Provided Catch2 unit tests Total Possible"]) + "). These were designed to test the basic implementation of your program in response to the test files. Although it a shame you didn't quite get full marks here. you still did well and with perhaps a bit more time could have score 100% on these tests. "
       else:
-        feedback += "You passed all the provided Catch2 tests, scoring all " + str(autograder_marks["Provided Catch2 unit tests Total"]) + " marks possible. "
+        feedback += "You passed all the provided Catch2 tests, scoring all " + str(autograder_marks["Provided Catch2 unit tests Total"]) + " marks possible. This is obviously a great outcome and demonstrates your capability to read and understand unit tests, and implement code to pass them. "
 
       if autograder_marks[test[catch2][extended]["T"]] < 11:
-        feedback += "With the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, your code scored less than 50% of the marks (" + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + "). These tests were designed to be challenging, so this is still a good result.\n\n"
+        feedback += "With the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, your code scored less than 50% of the marks (" + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + "). These tests were designed to be challenging, so this is still a good result. Many of these tests focused on following the description in the function block comments more closely or testing your code with the additional datasets.\n\n"
       elif autograder_marks[test[catch2][extended]["T"]] < 22:
-        feedback += "With the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, your code passed most of the tests (" + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + "), which given these tests were designed to be challenging, is a great result.\n\n"
+        feedback += "With the additional Catch2 tests designed to test the edge cases and advanced parts of the coursework, your code passed most of the tests (" + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + "), which given these tests were designed to be challenging, is a great result. Many of these tests focused on following the description in the function block comments more closely or testing your code with the additional datasets.\n\n"
       elif autograder_marks[test[catch2][extended]["T"]] == 22:
-        feedback += "Your code passed ALL of the additional Catch2 tests (" + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + ") designed to test the edge cases and advanced parts of the coursework, which is an excellent outcome and demonstrates some fantastic programming skills.\n\n"
+        feedback += "Your code passed ALL of the additional Catch2 tests (" + str(autograder_marks["Extended Catch2 unit tests Total"]) + "/" + str(autograder_marks["Extended Catch2 unit tests Total Possible"]) + ") designed to test the edge cases and advanced parts of the coursework, which is an excellent outcome, demonstrates some fantastic programming skills, and also your capability to read, think about, and respond to documentation.\n\n"
         
       if autograder_marks['Output tests Total'] == 0:
-        feedback += "It seems your code failed to pass any of the output tests (" + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + "). For this coursework you were given a specification and expected to program towards it. These tests were all available on the CS Autograder. The system was configured to provide the output of your program and the expected output to help you with your development. You were advised to make sure you passed these tests. "
+        feedback += "It seems your code failed to pass any of the output tests (" + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + "). For this coursework you were given a specification and expected to program towards it. These tests were all available on the CS Autograder, as well as local copies in the tests/ directory of the framework. Autograder was configured to provide the output of your program and the expected output to help you with your development. While some of these output tests required more advanced functionality, some could have been completed after processing the program arguments. "
       elif autograder_marks['Output tests Total'] - autograder_marks['Output tests - Compilation completed without warnings'] < 5:
-        feedback += "You code passed less than 50% of the provided output tests (" + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + "). The system was configured to provide the output of your program and the expected output to help you with your developed. You were advised to make sure you passed these tests, and so it is a shame to see that you did not manage to score well in this section. "
+        feedback += "You code passed less than 50% of the provided output tests (" + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + "). These tests were all available on the CS Autograder, as well as local copies in the tests/ directory of the framework. Autograder was configured to provide the output of your program and the expected output to help you with your developed. While some of these output tests required more advanced functionality, some could have been completed after processing the program arguments. Testing your program against expected outputs is a key part of development—unit tests only present part of the picture of coding quality. "
       elif autograder_marks['Output tests Total'] - autograder_marks['Output tests - Compilation completed without warnings'] < 10:
-        feedback += "You code passed most of the provided output tests (" + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + "). These were designed to test the basic output of your program in response to the commands, and the CS Autograder was configured to provide you with the expected output as well as the output from your program. These were easy points to score, so it is a shame you didn't quite get full marks here. "
+        feedback += "You code passed most of the provided output tests (" + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + "). These were designed to test the basic output of your program in response to the commands, and the CS Autograder was configured to provide you with the expected output as well as the output from your program. Although you didn't quite score full marks, you did do well. Testing your program against expected outputs is a key part of development—unit tests only present part of the picture of coding quality."
       else:
-        feedback += "You passed all the provided output tests, scoring " + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + " marks possible. These were designed to test the basic output of your program in response to the commands. "
+        feedback += "You passed all the provided output tests, scoring " + str(autograder_marks["Output tests Total"] - autograder_marks[test[output][provided]["W"]]) + "/" + str(autograder_marks["Output tests Total Possible"] - autograder_marks[test[output][provided]["W"]]) + " marks possible. These were designed to test the basic output of your program in response to the commands. Passing all the output tests is a great outcome. "
 
       if autograder_marks['Extended output tests Total'] == 0:
         feedback += "I also ran your code against some additional output tests, although your program sadly scored " + str(autograder_marks["Extended output tests Total"]) + "/" + str(autograder_marks["Extended output tests Total Possible"]) + " against these tests.\n\n"
       elif autograder_marks['Extended output tests Total'] < 3:
-        feedback += "I also ran your code against some additional output tests. Your code passed less than 50% of these tests (" + str(autograder_marks["Extended output tests Total"]) + "/" + str(autograder_marks["Extended output tests Total Possible"]) + "), which is a little disappointing although these tests were designed to exploit the edge cases that you may not have considered thus scoring high here was challenging. To score better marks here, you should have attempted to run your program various different arguments and reasoned about the outputs of your program.\n\n"
+        feedback += "I also ran your code against some additional output tests. Your code passed less than 50% of these tests (" + str(autograder_marks["Extended output tests Total"]) + "/" + str(autograder_marks["Extended output tests Total Possible"]) + "), although these tests were designed to exploit the edge cases that you may not have considered thus scoring high here was challenging. To score better marks here, you should have attempted to run your program various different arguments and reasoned about the outputs of your program.\n\n"
       elif autograder_marks['Extended output tests Total'] < 6:
-        feedback += "I also ran your code against some additional output tests. Your code passed most of these tests (" + str(autograder_marks["Extended output tests Total"]) + "/" + str(autograder_marks["Extended output tests Total Possible"]) + "), which is a great outcome as these tests were designed to exploit the edge cases in your data thus scoring high here was challenging.\n\n"
+        feedback += "I also ran your code against some additional output tests. Your code passed most of these tests (" + str(autograder_marks["Extended output tests Total"]) + "/" + str(autograder_marks["Extended output tests Total Possible"]) + "), which is a great outcome as these tests were designed to exploit the edge cases in your data thus scoring high here was challenging. To score better marks here, you should have attempted to run your program various different arguments and reasoned about the outputs of your program.\n\n"
       else:
         feedback += "I also ran your code against some additional output tests and your code passed all of these (" + str(autograder_marks["Extended output tests Total"]) + "/" + str(autograder_marks["Extended output tests Total Possible"]) + "), which is a fantastic outcome, and showed that you did a very thorough job following the coursework specification.\n\n"
 
@@ -759,10 +809,10 @@ class coursework:
           if autograder_marks[test[catch2][extended]["01"]] > 0:
             feedback += "As a sign of your good programming, your code also correctly throws an exception when a provided with numbers of an incorrect length—this wasn't covered in the provided unit tests, although was expected as per the description of the function in bethyw.cpp.\n\n"
           else:
-            feedback += "However, your code sadly does not throw an exception when a provided with year values of an incorrect length (e.g., 20). This wasn't covered in the provided unit tests, although was expected as per the description of the function.\n\n"
+            feedback += "However, your code sadly does not throw an exception when a provided with year values of an incorrect length (e.g., 20). This wasn't covered in the provided unit tests, although was expected as per the description of the function (i.e., a years argument being a 0 or a 4 digit year, or 0 or 4 digit year followed by a hyphen and another 0 or 4 digit year, ).\n\n"
       else:
         if autograder_marks[test[catch2][provided]["01"]] > 0:
-          feedback += "Your code correctly parses the datasets program argument in the BethYw::parseDatasetsArg() function, as per the test suite in test1.cpp. "
+          feedback += "Your code correctly parses the datasets program argument in the BethYw::parseDatasetsArg() function, as per the test suite in test1.cpp, including returning the complete set of datasets when all was included as a program argument. "
 
           if autograder_marks[test[catch2][provided]["02"]] > 0:
             feedback += "Likewise, it also parses the areas argument correctly, whether it is a single area\'s code, a comma-separated list of codes, contains \'all\' as a value, or is missing; and a filter list generated (test2.cpp). "
@@ -854,13 +904,13 @@ class coursework:
         if autograder_marks[test[catch2][extended]["11"]] > 0:
           feedback += "A hidden test verified that your code also threw an exception when given an invalid language code for a name. "
         else:
-          feedback += "However, your code failed a hidden test to determine if your program throws an exception when given an invalid language code for a name, as requested in the provided framework. "
+          feedback += "However, your code failed a hidden test to determine if your program throws an exception when given an invalid language code for a name, as requested in the provided framework. Language codes were required to be 3 alphabetical characters only, as per the specification. "
       else:
         feedback += "For this task, you had to implement the Area class to support names in multiple languages and local authority codes but it seems your code does not pass the basic tests for this class (test8.cpp). "
         if autograder_marks[test[catch2][extended]["11"]] > 0:
           feedback += "However, a hidden test verified that your code threw an exception when given an invalid language code for a name. "
         else:
-          feedback += "Additionally, your code failed a hidden test to determine if your program throws an exception when given an invalid language code for a name, as requested in the provided framework. "
+          feedback += "Additionally, your code failed a hidden test to determine if your program throws an exception when given an invalid language code for a name, as requested in the provided framework. Language codes were required to be 3 alphabetical characters only, as per the specification. "
 
       if autograder_marks[test[catch2][provided]["10"]] > 0:
         feedback += "\n\nYou also had to implement—at least partially—the Areas class to allow it to contain Area instances and here your code passed the tests (test10.cpp). "
@@ -870,7 +920,7 @@ class coursework:
       if autograder_marks[test[catch2][provided]["11"]] > 0:
         feedback += "When testing your code with a fresh copy of areas.csv, everything seemed to work nicely (test11.cpp).\n\n"
       else:
-        feedback += "When testing your code with a fresh copy of areas.csv, the data did not get imported correctly as I expected (test11.cpp). Did you verify if this worked correctly on your local machine?\n\n"
+        feedback += "When testing your code with a fresh copy of areas.csv, the data did not get imported correctly as I expected (test11.cpp). \n\n"
 
 
 
@@ -901,7 +951,7 @@ class coursework:
         if autograder_marks[test[catch2][extended]["02"]] > 0:
           feedback += "Hidden tests confirm your Area object converts Measure codenames to lowercase and handles case-insensitive finding of Measures by codename. It also handles the insert-and-merge functionality correctly.\n\n"
         else:
-          feedback += "Hidden tests confirm your Area object converts Measure codenames to lowercase and handles case-insensitive finding of Measures by codename, but the expected insert-and-merge functionality described in the block comments doesn't seem to work quite as expected.\n\n"
+          feedback += "Hidden tests confirm your Area object converts Measure codenames to lowercase and handles case-insensitive finding of Measures by codename, but the expected insert-and-merge functionality described in the block comments doesn't seem to work quite as expected. These features were all described in block comments, and partially covered by the provided tests.\n\n"
       else:
         if autograder_marks[test[catch2][extended]["02"]] > 0:
           feedback += "A hidden test shows that your Area object doesn't convert Measure codenames to lowercase as required (or maybe that the Area::getMeasure() method isn't case insensitive). A second hidden test though does show that the insert-and-merge functionality works as expected.\n\n"
@@ -996,9 +1046,9 @@ class coursework:
             feedback += " and correspondingly your code produced invalid output too (provided output tests 4 and 5). "
 
       if autograder_marks[test[catch2][extended]["06"]] > 0:
-        feedback += "Your implementation of the three statistics functions passed my test for them.\n\nWith regards to the other JSON-based datasets:\n"
+        feedback += "Your implementation of the three statistics functions passed my test for them, which is great.\n\nWith regards to the other JSON-based datasets:\n"
       else:
-        feedback += "Your implementation of the three statistics functions don't seem to pass my test for them?\n\nWith regards to the other JSON-based datasets:\n"
+        feedback += "Your implementation of the three statistics functions don't seem to pass my test for them? Sample values were included in the coursework worksheet and tests/ directory you could have verified your code with.\n\nWith regards to the other JSON-based datasets:\n"
 
       if autograder_marks[test[catch2][extended]["07"]] > 0:
         if autograder_marks[test[output][provided]["06"]] > 0:
@@ -1052,7 +1102,7 @@ class coursework:
           feedback += "However, the output did not match the expected output for this dataset (provided output 9). "
 
       else:
-        feedback += "A hidden Catch2 test indicates that your program does not parse the complete-popu1009-popden.csv as expected. "
+        feedback += "A hidden Catch2 test indicates that your program does not parse the complete-popu1009-popden.csv as expected. This was very much an extended feature and designed to challenge students. "
 
         if autograder_marks[test[output][provided]["09"]] > 0:
           feedback += "However, the output matched the expected output for this dataset (provided output 9). "
@@ -1078,7 +1128,7 @@ class coursework:
       task8marks    = int(autograder_marks[test[output][extended]["02"]] + autograder_marks[test[output][extended]["02a"]] + autograder_marks[test[output][extended]["03"]] + autograder_marks[test[output][extended]["04"]] + autograder_marks[test[output][extended]["05"]] + autograder_marks[test[output][extended]["05a"]])
       task8possible =                                                  1 +                                               0 +                                              1 +                                              1 +                                              1 +                                              0
       
-      feedback += "\n1.7. TASK 8: IMPLEMENT EXTENED ARGUMENT FILTERING (" + str(task8marks) + "/" + str(task8possible) + ")\nFor this task, there were a variety of different output tests:\n"
+      feedback += "\n1.7. TASK 8: IMPLEMENT EXTENDED ARGUMENT FILTERING (" + str(task8marks) + "/" + str(task8possible) + ")\nFor this task, there were a variety of different output tests:\n"
 
       if autograder_marks[test[output][provided]["02"]] > 0 or autograder_marks[test[output][provided]["02a"]] > 0:
         feedback += "- The output for the command bethyw -a swan -m rail was exactly as I expected\n"
@@ -1164,7 +1214,7 @@ class coursework:
             {
              "stats2":    ("<skip stats point>",                       0, ""),
              "stats1":    ("Statistics NOT included",                  0, "You did not include the required statistics in your output. "),
-             "stats0":    ("Statistics included",                      0, "You did included the required statistics in your output, which is great. ")
+             "stats0":    ("Statistics included",                      0, "You included the required statistics in your output, which is great. ")
             },
             {
              "noareas3":  ("<skip areas with no data point>",          0, "\n\n"),
@@ -1179,9 +1229,11 @@ class coursework:
           view_text        = ("Output from ./bin/bethyw -d popden -y 1995-1999", stdout),
           decision         = multidecision,
           next_stage       = "memtest")
-
+  
+    stdout = res.stdout.decode("utf-8")
+    stderr = res.stderr.decode("utf-8")
     return stage_result(
-      updated_label    = "Couldn't compile and run coursework with commands " + (" ".join(cmd)) + " and "  + (" ".join(cmd2)),
+      updated_label    = "Couldn't compile and run coursework with command " + (" ".join(cmd)) + "",
       view_text        = ("Compilation output", stdout + "\n" + stderr),
       next_stage       = "memtest",
       student_marks    = -2)
@@ -1269,7 +1321,7 @@ class coursework:
   def input_source(student_id, marks, feedback): # max -1
     multidecision = [
         {
-         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -1, "2.2. INHERITANCE\nYou didn't make the InputSource and InputFile functions and destructor all virtual, as required. "),
+         "inpt2":     ("InputSource and InputFile functions + destructor aren't virtual",                     -4, "2.2. INHERITANCE\nYou didn't make the InputSource and InputFile functions and destructor all virtual. In the block comment. There was a block comment that highlighted this design \"In future versions of our application, we may support multiple input. Therefore, this virtual class [InputSource] will allow us to mix/match sources as needed.\", but this wouldn't be possible without having the requisite functions declared as virtual."),
          "inpt1":     ("InputSource and InputFile functions + destructor are virtual",                         0, "2.2. INHERITANCE\nIn InputSource and InputFile, you correctly used virtual functions, including with a virtual destructor."),
         },
       ]
@@ -1356,7 +1408,7 @@ class coursework:
       return stage_result(
         updated_label    = "The student didn't keep the functions in order",
         student_feedback = feedback + "\n\n2.3. CODE STYLE\nYou were asked to keep the functions in the same order as they were given to you in the block comments. Not doing this makes it significantly harder to mark your work. ",
-        student_marks    = -.5,
+        student_marks    = -1,
         next_stage       = "not_const_functions")
 
 
@@ -1502,14 +1554,14 @@ class coursework:
     else:
       quality_errors = {
         # string in gcc output : (marks to deduce, num regex matches, regex match, feedback, friends)
-        'casts away qualifiers':                  (1, 2, r'([a-zA-Z.]*):([0-9]+)',            "It seems your code casts away some qualifiers (e.g. const) from variables, which is typically an indication of trouble in your code and bad practice. You should always work to honour qualifiers such as const rather than overriding them. The first occurence of this I spotted was in __ on line __."),
+        'casts away qualifiers':                  (3, 2, r'([a-zA-Z.]*):([0-9]+)',            "It seems your code casts away some qualifiers (e.g. const) from variables, which is typically an indication of trouble in your code and bad practice. You should always work to honour qualifiers such as const rather than overriding them. The first occurence of this I spotted was in __ on line __."),
 
-        'used uninitialized':                     (1, 2, r'([a-zA-Z.]*):([0-9]+)',            "You have used a variable that is uninitalised in your code, without initialising it. I discussed this in lectures and labs. This is incredibly easy to do as this is a case of 'undefined behaviour' (i.e., some compilers on some platforms will automatically initalise variables for you and some won't). However, I treated this as bad practice as you were advised in lectures to avoid doing this. The first occurence I spotted was in __ on line __."),
+        'used uninitialized':                     (2, 2, r'([a-zA-Z.]*):([0-9]+)',            "You have used a variable that is uninitalised in your code, without initialising it. I discussed this in lectures and labs. This is incredibly easy to do as this is a case of 'undefined behaviour' (i.e., some compilers on some platforms will automatically initalise variables for you and some won't). However, I treated this as bad practice as you were advised in lectures to avoid doing this. The first occurence I spotted was in __ on line __."),
 
         'of equal expressions':                   (1, 2, r'([a-zA-Z.]*):([0-9]+)',            "There is some suspect logic in __ on line __—you seem testing the same thing twice in your logical test?"),
 
         'no previous declaration for':            (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "I asked you to always declare functions in header files before implementing them, but it seems you didn't always manage this, as in __ with the free function __.", ['no declaration matches']),
-        'no declaration matches':                 (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "It seems that the although you provided an implementation in __ for the function __, there isn't a matching declaration of it?. I asked to you make sure you always included declarations for your functions in the appropriate header files.", ['no previous declaration for']),
+        'no declaration matches':                 (1, 2, r"([a-zA-Z.]*)[^']*'(.*)'",          "It seems that the although you provided an implementation in __ for the function __, there isn't a matching declaration of it?. I asked to you make sure you always included declarations for your functions in the appropriate header files. This is also typically expected in industrial or open-source projects, so this requirement wasn't just me being difficult. ", ['no previous declaration for']),
 
         'shadows a parameter':                    (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope or as a parameter (as in this case). The first place I spotted this was in __ on line __ with the __.", ['shadows a local', 'shadows a previous local', 'shadows a member']),
         'shadows a local':                        (1, 3, r"([a-zA-Z.]*):([0-9]+)[^']*'(.*)'", "You've inadvertently shadowed a variable. This is where you create a variable inside a given scope, when it has been always declared in a higher scope (as in this case) or where you declare a variable with the same name as a parameter. The first place I spotted this was in __ on line __ with the __.", ['shadows a member', 'shadows a previous local', 'shadows a parameter']),
@@ -1574,7 +1626,7 @@ class coursework:
   def code_style(student_id, marks, feedback): # max -16
     multidecision = [
         {
-         "messy1":    ("Indentation/code style is very messy or inconsistent",                                 -2, "Your use of indentation and general code style seems somewhat inconsistent and messy. "),
+         "messy1":    ("Indentation/code style is very messy or inconsistent",                                 -3, "Your use of indentation and general code style seems somewhat inconsistent and messy. "),
          "messy2":    ("Indentation/code style is a little messy/mostly OK",                                   -1, "Your use of indentation and general code style seems occasionally inconsistent and messy. "),
          "messy3":    ("Indentation is perfect",                                                                0, "Your use of indentation and general code style is consistent. "),
         },
@@ -1595,7 +1647,7 @@ class coursework:
         },
         
         {
-         "const5":    ("No use of the const keyword with variables",                                           -2, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
+         "const5":    ("No use of the const keyword with variables",                                           -3, "You don't seem to have used const in any significant way in your coursework. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
          "const4":    ("Little use of the const keyword with variables",                                       -2, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
          "const3":    ("Could have used more instances of the const keyword with variables",                 -1.5, "In terms of using const for non-modifiable variables and references, there are a few places where you could have used this where you did not. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
          "const2":    ("Good use of the const keyword for variables",                                          -1, "In terms of using const for non-modifiable variables and references, you've used this well. Using const wherever you will not be modifying a value or rely upon a variable to not change is good practice.\n\n"),
@@ -1603,26 +1655,26 @@ class coursework:
         },
         
         {
-         "nd2":       ("Missing delete/delete [] for a new/new []",                                            -2, "There are a few places where you should have used delete/delete [] to ensure you have deallocated memory on the heap that you allocated with the new/new [] keywords. I covered this quite a few times in lectures that with C and C++, memory management is still the responsibility of the developer. "),
+         "nd2":       ("Missing delete/delete [] for a new/new []",                                            -4, "There are a few places where you should have used delete/delete [] to ensure you have deallocated memory on the heap that you allocated with the new/new [] keywords. I covered this quite a few times in lectures that with C and C++, memory management is still the responsibility of the developer. "),
          "nd0":       ("delete/delete []'d everything they have new/new []'d",                               -0.5, "You used the new/new [] keywords in your code to allocate data on the heap, but also used the delete/delete [] keywords to free this memory. This is good, although generally speaking we should try to avoid newing and deleting as much as possible. "),
          "nd1":       ("No use of new/delete",                                                                  0, "You haven't used new/delete anywhere, which is great. As I covered in lectures, this introduces challenges, e.g., when we start to also mix in things like exceptions which sidestep the typical flow of execution. "),
         },
         
         {
-         "if3":       ("Missing delete/delete [] with stream in InputFile",                                    -2, "It seems your InputSource/InputFile instances store a pointer but it's not clear where this is deleted. Remember, whenever we new, we must delete. This is also complicated by exceptions, which sidestep the normal flow of execution.  You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this. "),
-         "if2":       ("delete with stream in InputFile, but what about exceptions?",                          -1, "It seems your InputSource/InputFile instances store a pointer that gets deleted in the destructor, although it's not clear if this would get cleaned up if an exception was thrown in your code. You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this."),
-         "if1":       ("Use of std::unique_ptr or equivalent in InputFile",                                     0, "You have used a Standard Library RAII function, which is excellent practice and demonstrates great engagement with the topics discussed in lectures. Great work!"),
-         "if0":       ("Stored the stream as a member variable",                                                0, "You have avoided using new/delete inside InputFile, which given we want to avoid this as much as possible, is good practice to keep up."),
+         "if3":       ("Missing delete/delete [] with stream in InputFile",                                    -4, "It seems your InputSource/InputFile instances store a pointer but it's not clear where this is deleted. Remember, whenever we new, we must delete. This is also complicated by exceptions, which sidestep the normal flow of execution.  You could have used something like storing the stream as a member variable, or put more code in try...catch blocks to avoid this. However, the latter would still mean anyone using your InputFile class would need to make sure that the stream gets closed properly. Storing the stream as a variable on the stack (e.g., a member variable) and relying on the RAII princples would mean that the stream could be guaranteed to close. You can actually see this functionality in action in some of the unit tests that open streams."),
+         "if2":       ("delete with stream in InputFile, but what about exceptions?",                          -2, "It seems your InputSource/InputFile instances store a pointer that gets deleted in the destructor, although it's not clear if this would get cleaned up if an exception was thrown in your code? You could have used something like std::unique_ptr here, storing the stream as a member variable, or put more code in try...catch blocks to avoid this. In C++, we want to avoid storing things as raw pointers as much as possible and start to try and get to a point where we can rely on the RAII principles. Storing the stream as a variable (e.g., in the class) and relying on the automatic destruction when the class is destroyed would have done this.  You can actually see this sort of functionality in action in some of the unit tests that open streams."),
+         "if1":       ("Use of std::unique_ptr or equivalent in InputFile",                                    +1, "You have used a Standard Library RAII function, which is excellent practice and demonstrates great engagement with the topics discussed in lectures. This is good, although the Standard Library stream functionaltiy already follows RAII principles, so you could have stored your stream as a member variable inside the InputFile, which would mean that as the InputFile class is detroyed, the stream would automatically be closed due to RAII principles."),
+         "if0":       ("Stored the stream as a member variable",                                               +1, "You have avoided using new/delete inside InputFile, which given we want to avoid this as much as possible, is good practice to keep up. You stored your stream as a member variable inside the InputFile, which means that as the InputFile class is detroyed, the stream is automatically closed due to RAII principles."),
         },
         
         {
-         "div1":      ("Measure::getAverage/Difference/DifferenceAsPercentage() susceptible to div/0",         -2, "\n\nIn your implementation of the statistics functions in the Measure class, your code seems to be susceptible to a division by 0 error, which would have crashed your application. You should make sure you are not dividing by zero ever in code. This is a runtime error and hard to catch, but a common source of issues."),
+         "div1":      ("Measure::getAverage/Difference/DifferenceAsPercentage() susceptible to div/0",         -3, "\n\nIn your implementation of the statistics functions in the Measure class, your code seems to be susceptible to a division by 0 error, which would have crashed your application. You should make sure you are not dividing by zero ever in code. This is a runtime error and hard to catch, but a common source of issues."),
          "div0":      ("Measure::getAverage/Difference/DifferenceAsPercentage() protected against size() = 0",  0, "")
         },
         
         {
-         "pop2":      ("No populate functions handle nullptr",                                                 -2, "\n\nYour populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
-         "pop1":      ("Some populate functions handle nullptr",                                               -1, "\n\nIn seems some your populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
+         "pop2":      ("No populate functions handle nullptr",                                                 -3, "\n\nYour populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
+         "pop1":      ("Some populate functions handle nullptr",                                               -2, "\n\nIn seems some your populate…() functions in areas.cpp don't seem to look for/check for nullptr being passed in in with the filter arguments. You should always check parameter inputs in your functions, especially if they are pointers, before trying to do anything with them."),
          "pop0":      ("All populate functions handle nullptr",                                                 0, "\n\nYour populate…() functions in areas.cpp are checking for nullptr on the filter arguments! This was an area where it was incredibly easy to forget to do this.")
         },
       ]
@@ -1660,8 +1712,8 @@ class coursework:
         },
         
         {
-         "x1":        ("No extra features",                                                                     0, "You didn't include any extra features, which was fine. You weren't asked too."),
-         "x0":        ("They had extra features",                                                               0, ""),
+         "x1":        ("No extra features",                                                                    0, "You didn't include any extra features, which was fine. You weren't asked too."),
+         "x0":        ("They had extra features (no feedback output)",                                         0, ""),
         },
     ]
 
@@ -1807,6 +1859,11 @@ class coursework:
          "std1":      ("Did not use 'using namespace std;'",                                                     0, ""),
          "std0":      ("Used 'using namespace std;'",                                                           -1, "You used 'using namespace std' in your code, which I strongly discouraged in lectures. "),
         },
+        
+        {
+         "eff1":      ("Inefficient code !! REMEMBER TO EDIT !!'",                                             -3, "It seems some of your code is particularly inefficient in places, including !!EDIT!!. "),
+         "eff0":      ("No real instances of inefficient code",                                                 0, "Overall, your code seems efficient and well-organised. "),
+        },
 
         {
          "redund4":   ("Quite a bit of redundant or repeated code",                                            -3, "There's a fair few instances of redundant/repeated code which could have been made more efficient (e.g., by moving them into separate functions).\n\n"),
@@ -1822,24 +1879,24 @@ class coursework:
         },
 
         {
-         "attempt0":  ("Attempted nothing",                                                                    -2, "3. SUMMARY\nSadly, you attempted very little of this coursework and "),
-         "attempt1":  ("Attempted some things (and did not so well)",                                          -1, "3. SUMMARY\nAlthough you only attempted some of the tasks in this coursework, "),
-         "attempt2":  ("Attempted some things (and did well)",                                                  0, "3. SUMMARY\nYou only attempted some of the tasks in this courserwork but "),
-         "attempt3":  ("Attempted most things (and did not so well)",                                         -.5, "3. SUMMARY\nAlthough you attempted most of the tasks in this coursework, "),
-         "attempt4":  ("Attempted most things (and did well)",                                                  0, "3. SUMMARY\nYou attempted most of the tasks in this coursework and "),
-         "attempt5":  ("Attempted everything (and did not so well)",                                          -.5, "3. SUMMARY\nAlthough You attempted everything in this coursework, "),
-         "attempt6":  ("Attempted everything (and did well)",                                                   0, "3. SUMMARY\nYou attempted everything in this coursework and "),
+         "attempt0":  ("Attempted nothing",                                                                    -2, "3. SUMMARY\nSadly, you attempted very little of this coursework " + coursework.name + " and "),
+         "attempt1":  ("Attempted some things (and did not so well)",                                          -1, "3. SUMMARY\nAlthough you only attempted some of the tasks in this coursework " + coursework.name + " , "),
+         "attempt2":  ("Attempted some things (and did well)",                                                  0, "3. SUMMARY\nYou only attempted some of the tasks in this courserwork " + coursework.name + "  but "),
+         "attempt3":  ("Attempted most things (and did not so well)",                                         -.5, "3. SUMMARY\nAlthough you attempted most of the tasks in this coursework" + coursework.name + " , "),
+         "attempt4":  ("Attempted most things (and did well)",                                                  0, "3. SUMMARY\nYou attempted most of the tasks in this coursework " + coursework.name + " and "),
+         "attempt5":  ("Attempted everything (and did not so well)",                                          -.5, "3. SUMMARY\nAlthough You attempted everything in this coursework" + coursework.name + " , "),
+         "attempt6":  ("Attempted everything (and did well)",                                                   0, "3. SUMMARY\nYou attempted everything in this coursework " + coursework.name + " and "),
         },
         
         {
-         "overall8":  ("  0/4, this is a very poor coursework (quality, not completeness)",                    -4, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall7":  ("  1/4, this is a poor coursework (quality, not completeness)",                         -3, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
-         "overall6":  ("1.5/4, this is a OK coursework (quality, not completeness)",                        -2.5, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
-         "overall5":  ("  2/4, this is a good coursework (quality, not completeness)",                         -2, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall4":  ("2.5/4, this is a very good coursework (quality, not completeness)",                  -1.5, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
-         "overall3":  ("  3/4, this is a great coursework (quality, not completeness)",                        -1, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall2":  ("3.5/4, this is a excellent coursework (quality, not completeness)",                  -0.5, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
-         "overall1":  ("  4/4: this is a perfect coursework (quality, not completeness)",                       0, "this is a truly excellent coursework solution. You have produced some great code. Well done!")
+         "overall8":  ("<20%, this is a very poor coursework (quality, not completeness)",                    0, "there is a lot of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall7":  ("30%+, this is a poor coursework (quality, not completeness)",                         0, "this is an OK coursework, although there is a quite a bit of scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark. You must focus on revising this module now in preparation for the exam."),
+         "overall6":  ("40%+, this is a OK coursework (quality, not completeness)",                           0, "this is an OK coursework, although there is a scope for improvement. Much of this coursework's marks were achievable without completing all the tasks. Focusing on delivering good, but perhaps, incomplete code would have helped you achieve a higher mark."),
+         "overall5":  ("50%, this is a good coursework (quality, not completeness)",                          0, "this is an good attempt. You have produced some good code, but there a quite a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall4":  ("60%, this is a very good coursework (quality, not completeness)",                     0, "this is an great attempt. You have produced some OK code, but there a few areas where you could have improved. Use the feedback to re-examine and reflect upon your code."),
+         "overall3":  ("70%, this is a great coursework (quality, not completeness)",                         0, "this is an excellent coursework solution. You have produced some nice code, although there is, as always, a little room for improvement."),
+         "overall2":  ("75%+, this is a excellent coursework (quality, not completeness)",                    0, "this is an excellent coursework solution. You have produced some nice code, and there is very little room for improvement."),
+         "overall1":  ("80%+: this is a perfect coursework (quality, not completeness)",                      0, "this is a truly excellent coursework solution. You have produced some great code. Well done!")
         }
       ]
 
